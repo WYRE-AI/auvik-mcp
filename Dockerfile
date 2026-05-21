@@ -1,7 +1,13 @@
 FROM node:20-alpine AS builder
+ARG GITHUB_TOKEN
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --ignore-scripts
+COPY .npmrc ./.npmrc
+RUN if [ -n "$GITHUB_TOKEN" ]; then \
+      echo "//npm.pkg.github.com/:_authToken=$GITHUB_TOKEN" >> .npmrc; \
+    fi \
+ && npm ci --ignore-scripts \
+ && rm -f .npmrc
 COPY . .
 RUN npm run build
 
