@@ -1,0 +1,20 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - auvikUsername
+      - auvikApiKey
+    properties:
+      auvikUsername:
+        type: string
+        description: Your Auvik username (email)
+      auvikApiKey:
+        type: string
+        description: Your Auvik API key (generated in the Auvik portal)
+      auvikRegion:
+        type: string
+        description: "Auvik regional host (us1, us2, us3, us4, eu1, eu2, au1, ca1). Omit to auto-detect."
+  commandFunction: |-
+    (config) => ({ command: 'node', args: ['dist/index.js'], env: { AUVIK_USERNAME: config.auvikUsername, AUVIK_API_KEY: config.auvikApiKey, AUVIK_REGION: config.auvikRegion || '', MCP_TRANSPORT: 'stdio' } })
