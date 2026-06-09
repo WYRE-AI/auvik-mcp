@@ -43,7 +43,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.5.0",
+    "typescript": "^6.0.3",
     "vitest": "^2.0.0",
     "semantic-release": "^25.0.0",
     "@semantic-release/changelog": "^6.0.3",
