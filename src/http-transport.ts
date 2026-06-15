@@ -1,4 +1,4 @@
-import fastify from 'fastify';
+import { createServer as createHttpServer } from 'node:http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server.js';
 import { credentialsStorage, type AuvikCredentials } from './credentials.js';
@@ -6,74 +6,70 @@ import { credentialsStorage, type AuvikCredentials } from './credentials.js';
 const port = parseInt(process.env.MCP_HTTP_PORT || '8080', 10);
 const host = process.env.MCP_HTTP_HOST || '0.0.0.0';
 
+// Uses the raw node:http server (not Fastify) to match the WYRE MCP fleet
+// convention. The StreamableHTTPServerTransport reads the request body off the
+// raw stream itself; a framework that pre-parses the body (e.g. Fastify) drains
+// that stream and the SDK then fails every call with -32700 "Parse error".
 export async function startHttpTransport(): Promise<void> {
-  const app = fastify({ logger: true });
+  const httpServer = createHttpServer(async (req, res) => {
+    const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
 
-  // Health endpoint - UNCONDITIONALLY returns 200
-  app.get('/health', async (request, reply) => {
-    return { status: 'ok' };
-  });
-
-  // MCP endpoint
-  app.all('/messages', async (request, reply) => {
-    // Extract credentials from headers for gateway mode
-    const username = request.headers['x-auvik-username'] as string;
-    const apiKey = request.headers['x-auvik-api-key'] as string;
-    const region = request.headers['x-auvik-region'] as string;
-
-    if (username && apiKey) {
-      const credentials: AuvikCredentials = {
-        username,
-        apiKey,
-        region,
-      };
-
-      // Run the MCP handler within AsyncLocalStorage context
-      return credentialsStorage.run(credentials, async () => {
-        const server = createServer();
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined,
-          enableJsonResponse: true,
-        });
-
-        // Clean up on request end
-        request.raw.on('close', () => {
-          transport.close();
-          server.close();
-        });
-
-        await server.connect(transport);
-
-        // Convert Fastify request/response to Node.js IncomingMessage/ServerResponse
-        return transport.handleRequest(request.raw, reply.raw);
-      });
+    // /health is container LIVENESS, not credential-readiness. In gateway mode
+    // credentials arrive per-request via x-auvik-* headers, not at startup, so
+    // gating this on credentials would always 503 and the WYRE vendor-monitor
+    // would permanently false-red Auvik. Always 200, no auth required.
+    if (url.pathname === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+      return;
     }
 
-    // Fall back to handling without AsyncLocalStorage (single-tenant mode)
-    const server = createServer();
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-      enableJsonResponse: true,
-    });
+    // The MCP endpoint MUST be /mcp: the gateway proxies vendor traffic to
+    // `${containerUrl}${mcpPath ?? '/mcp'}` and Auvik sets no mcpPath, so it
+    // relies on this default. Any other path 404s the gateway and the vendor
+    // shows zero tools.
+    if (url.pathname !== '/mcp') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Not found', endpoints: ['/mcp', '/health'] }));
+      return;
+    }
 
-    request.raw.on('close', () => {
-      transport.close();
-      server.close();
-    });
+    // Each request gets a fresh server + transport (stateless: no session id).
+    const handle = async () => {
+      const server = createServer();
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+        enableJsonResponse: true,
+      });
 
-    await server.connect(transport);
-    return transport.handleRequest(request.raw, reply.raw);
-  });
+      res.on('close', () => {
+        transport.close();
+        server.close();
+      });
 
-  // 404 handler
-  app.setNotFoundHandler(async (request, reply) => {
-    reply.status(404);
-    return {
-      error: 'Not found',
-      endpoints: ['/messages', '/health']
+      await server.connect(transport);
+      await transport.handleRequest(req, res);
     };
+
+    // Gateway mode: per-request credentials via headers, scoped through
+    // AsyncLocalStorage so concurrent requests never cross credentials.
+    // Don't reject when absent — tools/list works without credentials.
+    const username = req.headers['x-auvik-username'] as string | undefined;
+    const apiKey = req.headers['x-auvik-api-key'] as string | undefined;
+    const region = req.headers['x-auvik-region'] as string | undefined;
+
+    if (username && apiKey) {
+      const credentials: AuvikCredentials = { username, apiKey, region };
+      await credentialsStorage.run(credentials, handle);
+    } else {
+      await handle();
+    }
   });
 
-  await app.listen({ port, host });
-  console.log(`Auvik MCP HTTP server listening on ${host}:${port}`);
+  await new Promise<void>((resolve) => {
+    httpServer.listen(port, host, () => {
+      console.log(`Auvik MCP HTTP server listening on ${host}:${port}`);
+      resolve();
+    });
+  });
 }
