@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `us5` Auvik API region option (`auvikapi.us5.my.auvik.com`) for accounts on the US5 cluster. Set `AUVIK_REGION=us5` (env) or send the `x-auvik-region: us5` header in gateway mode.
+
 ## [0.1.0] - 2024-05-21
 
 ### Added
