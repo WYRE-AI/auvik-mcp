@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `us5` Auvik API region option (`auvikapi.us5.my.auvik.com`) for accounts on the US5 cluster. Set `AUVIK_REGION=us5` (env) or send the `x-auvik-region: us5` header in gateway mode.
+- Documented `us6` and `lnx` as supported Auvik API regions (`auvikapi.us6.my.auvik.com` / `auvikapi.lnx.my.auvik.com`), both mapping to US East (Ohio). Set `AUVIK_REGION=us6`/`lnx` (env) or send the `x-auvik-region: us6`/`lnx` header in gateway mode.
 
 ### Fixed
 - **`/inventory/*` and several other tools returned `-32600: Auvik resource not found`.** The placeholder API client used incorrect Auvik API paths for list/detail endpoints — most visibly the list calls hit `/inventory/device` (etc.) instead of `/inventory/device/info`, so every `/inventory/` tool 404'd while `auvik_tenants_list` worked (its `/tenants` path was correct). Corrected all paths to match the real Auvik API and the `@wyre-technology/node-auvik` SDK: device/network/interface list → `…/info`; device details → `/inventory/device/details/{id}`; configuration get → `/inventory/configuration/{id}`; alerts → `/alert/history`, `/alert/history/{id}`, `POST /alert/history/{id}/dismiss`; SNMP poller stats → `/stat/snmpPoller`; tenant detail → `/tenants/detail`. Added a unit test pinning every request path.
