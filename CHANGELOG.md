@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Gateway mode now actually returns tools.** The HTTP transport served the MCP endpoint at `/messages` on top of Fastify, which broke gateway integration two ways: (1) the gateway proxies to `/mcp` (its default `mcpPath`), so every request 404'd; (2) Fastify pre-parsed and drained the request body before the MCP SDK could read it, so calls that did reach the handler failed with JSON-RPC `-32700` parse errors. Rewrote the transport on the canonical `node:http` pattern used across the WYRE MCP fleet — serving `/mcp` and calling `handleRequest(req, res)` so the SDK reads the raw body itself. `tools/list` now returns all 26 tools (verified without credentials, since tool listing requires none).
+- **`mcp-assert` CI (and any stdio client) now works.** A bare `node dist/index.js` defaulted to HTTP transport, so stdio clients — local MCP clients and the `mcp-eval-baseline` CI harness, which spawns the entry and drives it over stdio — received no response and timed out (`MCP initialize failed: transport error: context deadline exceeded`). Flipped the default to stdio (matching the fleet convention and the README's `npm start` usage); HTTP stays opt-in via `MCP_TRANSPORT=http` (set by the Dockerfile and the `gwp-auvik` container app) or the `--http` flag, so the deployed container is unaffected.
 
 ### Removed
 - Unused `fastify` dependency (the HTTP transport no longer uses it).
