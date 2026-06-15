@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `us5` Auvik API region option (`auvikapi.us5.my.auvik.com`) for accounts on the US5 cluster. Set `AUVIK_REGION=us5` (env) or send the `x-auvik-region: us5` header in gateway mode.
 
+### Fixed
+- **Gateway mode now actually returns tools.** The HTTP transport served the MCP endpoint at `/messages` on top of Fastify, which broke gateway integration two ways: (1) the gateway proxies to `/mcp` (its default `mcpPath`), so every request 404'd; (2) Fastify pre-parsed and drained the request body before the MCP SDK could read it, so calls that did reach the handler failed with JSON-RPC `-32700` parse errors. Rewrote the transport on the canonical `node:http` pattern used across the WYRE MCP fleet — serving `/mcp` and calling `handleRequest(req, res)` so the SDK reads the raw body itself. `tools/list` now returns all 26 tools (verified without credentials, since tool listing requires none).
+
+### Removed
+- Unused `fastify` dependency (the HTTP transport no longer uses it).
+
 ## [0.1.0] - 2024-05-21
 
 ### Added
