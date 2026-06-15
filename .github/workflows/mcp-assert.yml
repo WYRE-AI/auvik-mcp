@@ -11,4 +11,8 @@ jobs:
     uses: wyre-technology/.github/.github/workflows/mcp-assert.yml@03d64fcdcce377f8a8d86ef9b66b125dc8156149  # main
     with:
       entry: dist/index.js
-      canary-tool: auvik_status
+      # Canary must be a credentials-REQUIRING tool: the harness calls it with no
+      # creds and asserts isError=true. auvik_status is deliberately creds-optional
+      # (reports hasCredentials:false and succeeds), so it can't be the canary.
+      # auvik_tenants_list returns isError "No Auvik credentials configured" w/o creds.
+      canary-tool: auvik_tenants_list
