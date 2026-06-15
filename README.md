@@ -66,7 +66,7 @@ MCP server for the Auvik network monitoring API. This server provides tools to i
 ```bash
 AUVIK_USERNAME=your_auvik_username
 AUVIK_API_KEY=your_auvik_api_key
-AUVIK_REGION=us1  # Optional: us1, us2, us3, us4, us5, eu1, eu2, au1, ca1
+AUVIK_REGION=us1  # Optional: us1, us2, us3, us4, us5, us6, lnx, eu1, eu2, au1, ca1
 ```
 
 #### Gateway mode (HTTP):
@@ -163,6 +163,8 @@ Auvik operates in multiple regions. Set the appropriate region:
 - `us3` - US Central
 - `us4` - US South
 - `us5` - United States (newer cluster)
+- `us6` - US East (Ohio)
+- `lnx` - US East (Ohio)
 - `eu1` - Europe West
 - `eu2` - Europe Central
 - `au1` - Australia
