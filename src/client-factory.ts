@@ -94,16 +94,16 @@ class MockAuvikClient implements AuvikClient {
   tenants = {
     list: () => this.request('/tenants'),
     get: (tenantId: string) => this.request(`/tenants/${tenantId}`),
-    getDetail: (tenantId: string) => this.request(`/tenants/${tenantId}/detail`),
+    getDetail: (tenantId: string) => this.request(`/tenants/detail?tenants=${tenantId}`),
   };
 
   devices = {
     list: (params?: any) => {
       const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/inventory/device${query}`);
+      return this.request(`/inventory/device/info${query}`);
     },
     get: (deviceId: string) => this.request(`/inventory/device/info/${deviceId}`),
-    getDetails: (deviceId: string) => this.request(`/inventory/device/detail/${deviceId}`),
+    getDetails: (deviceId: string) => this.request(`/inventory/device/details/${deviceId}`),
     getWarranty: (deviceId: string) => this.request(`/inventory/device/warranty/${deviceId}`),
     getLifecycle: (deviceId: string) => this.request(`/inventory/device/lifecycle/${deviceId}`),
   };
@@ -111,7 +111,7 @@ class MockAuvikClient implements AuvikClient {
   networks = {
     list: (params?: any) => {
       const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/inventory/network${query}`);
+      return this.request(`/inventory/network/info${query}`);
     },
     get: (networkId: string) => this.request(`/inventory/network/info/${networkId}`),
   };
@@ -119,7 +119,7 @@ class MockAuvikClient implements AuvikClient {
   interfaces = {
     list: (params?: any) => {
       const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/inventory/interface${query}`);
+      return this.request(`/inventory/interface/info${query}`);
     },
   };
 
@@ -128,7 +128,7 @@ class MockAuvikClient implements AuvikClient {
       const query = params ? `?${new URLSearchParams(params).toString()}` : '';
       return this.request(`/inventory/configuration${query}`);
     },
-    get: (configId: string) => this.request(`/inventory/configuration/info/${configId}`),
+    get: (configId: string) => this.request(`/inventory/configuration/${configId}`),
   };
 
   entities = {
@@ -145,10 +145,10 @@ class MockAuvikClient implements AuvikClient {
   alerts = {
     list: (params?: any) => {
       const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/alert${query}`);
+      return this.request(`/alert/history${query}`);
     },
-    get: (alertId: string) => this.request(`/alert/info/${alertId}`),
-    dismiss: (alertId: string) => this.request(`/alert/dismiss/${alertId}`, { method: 'POST' }),
+    get: (alertId: string) => this.request(`/alert/history/${alertId}`),
+    dismiss: (alertId: string) => this.request(`/alert/history/${alertId}/dismiss`, { method: 'POST' }),
   };
 
   statistics = {
@@ -166,7 +166,7 @@ class MockAuvikClient implements AuvikClient {
     },
     snmpPoller: (params?: any) => {
       const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/stat/snmp${query}`);
+      return this.request(`/stat/snmpPoller${query}`);
     },
   };
 
