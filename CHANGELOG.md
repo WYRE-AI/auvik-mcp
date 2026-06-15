@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **All `/inventory`, tenant, statistics, and billing tools failed with `Cannot read properties of undefined (reading 'id')`.** Root cause was in `@wyre-technology/node-auvik`: its HTTP client only parsed responses with `content-type: application/json`, but the Auvik API is JSON:API and responds with `application/vnd.api+json`, so every successful response was dropped to `{}` and the resource mappers threw. Bumped the SDK to `^1.2.1`, which matches any JSON content-type.
+
 ### Changed
 - **Wired in the real `@wyre-technology/node-auvik` SDK, replacing the placeholder client.** The server shipped on a `MockAuvikClient` (hand-rolled `fetch` calls with a standing "replace when node-auvik is ready" TODO that was never closed) — the SDK was a declared dependency but never imported. `createAuvikClient()` now constructs the real SDK and adapts it to the tool-facing interface, so all tools gain the SDK's JSON:API response flattening, cursor pagination, retry/backoff, and typed error mapping (401/404/429/5xx). The single `createAuvikClient` factory was the only call site, so no tool handlers changed. Added an integration test driving the adapter→SDK→HTTP path and asserting every request URL.
 
