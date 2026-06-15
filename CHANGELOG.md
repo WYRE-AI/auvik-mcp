@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Wired in the real `@wyre-technology/node-auvik` SDK, replacing the placeholder client.** The server shipped on a `MockAuvikClient` (hand-rolled `fetch` calls with a standing "replace when node-auvik is ready" TODO that was never closed) — the SDK was a declared dependency but never imported. `createAuvikClient()` now constructs the real SDK and adapts it to the tool-facing interface, so all tools gain the SDK's JSON:API response flattening, cursor pagination, retry/backoff, and typed error mapping (401/404/429/5xx). The single `createAuvikClient` factory was the only call site, so no tool handlers changed. Added an integration test driving the adapter→SDK→HTTP path and asserting every request URL.
+
 ### Added
 - `us5` Auvik API region option (`auvikapi.us5.my.auvik.com`) for accounts on the US5 cluster. Set `AUVIK_REGION=us5` (env) or send the `x-auvik-region: us5` header in gateway mode.
 

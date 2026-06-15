@@ -1,6 +1,13 @@
+import { AuvikClient as AuvikSdkClient, type AuvikRegion } from '@wyre-technology/node-auvik';
 import type { AuvikCredentials } from './credentials.js';
 
-// Mock/placeholder for AuvikClient until node-auvik is complete
+// Tool-facing client interface. Tool handlers consume `{ data, ... }`-shaped
+// responses: list calls check `response.data` / `response.data.length`, and
+// single-get calls check `response.data`. The adapter in createAuvikClient maps
+// this interface onto the real @wyre-technology/node-auvik SDK, which returns a
+// `Page<T>` (`{ data: [...], links, meta }`) for lists and a flattened object
+// for single gets — so get results are wrapped in `{ data }` to preserve the
+// shape the handlers expect.
 export interface AuvikClient {
   // Tenants
   tenants: {
@@ -63,126 +70,89 @@ export interface AuvikClient {
   };
 }
 
-// Mock implementation - will be replaced when node-auvik is ready
-class MockAuvikClient implements AuvikClient {
-  private baseUrl: string;
-  private auth: string;
-
-  constructor(credentials: AuvikCredentials) {
-    const region = credentials.region || 'us1';
-    this.baseUrl = `https://auvikapi.${region}.my.auvik.com/v1`;
-    this.auth = Buffer.from(`${credentials.username}:${credentials.apiKey}`).toString('base64');
-  }
-
-  private async request(path: string, options: RequestInit = {}): Promise<any> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      ...options,
-      headers: {
-        'Authorization': `Basic ${this.auth}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Auvik API error ${response.status}: ${response.statusText}`);
+// Tool args arrive as a loose object (e.g. { tenants: '123', filter_x: 'y' }).
+// The SDK's list endpoints take their query params under `filters`, so map the
+// args into `{ filters }`, coercing values to strings and dropping empties.
+function toListOptions(params?: Record<string, unknown>): { filters: Record<string, string> } {
+  const filters: Record<string, string> = {};
+  for (const [key, value] of Object.entries(params ?? {})) {
+    if (value !== undefined && value !== null && value !== '') {
+      filters[key] = String(value);
     }
-
-    return response.json();
   }
-
-  tenants = {
-    list: () => this.request('/tenants'),
-    get: (tenantId: string) => this.request(`/tenants/${tenantId}`),
-    getDetail: (tenantId: string) => this.request(`/tenants/detail?tenants=${tenantId}`),
-  };
-
-  devices = {
-    list: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/inventory/device/info${query}`);
-    },
-    get: (deviceId: string) => this.request(`/inventory/device/info/${deviceId}`),
-    getDetails: (deviceId: string) => this.request(`/inventory/device/details/${deviceId}`),
-    getWarranty: (deviceId: string) => this.request(`/inventory/device/warranty/${deviceId}`),
-    getLifecycle: (deviceId: string) => this.request(`/inventory/device/lifecycle/${deviceId}`),
-  };
-
-  networks = {
-    list: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/inventory/network/info${query}`);
-    },
-    get: (networkId: string) => this.request(`/inventory/network/info/${networkId}`),
-  };
-
-  interfaces = {
-    list: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/inventory/interface/info${query}`);
-    },
-  };
-
-  configurations = {
-    list: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/inventory/configuration${query}`);
-    },
-    get: (configId: string) => this.request(`/inventory/configuration/${configId}`),
-  };
-
-  entities = {
-    listNotes: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/inventory/entity/note${query}`);
-    },
-    listAudits: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/inventory/entity/audit${query}`);
-    },
-  };
-
-  alerts = {
-    list: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/alert/history${query}`);
-    },
-    get: (alertId: string) => this.request(`/alert/history/${alertId}`),
-    dismiss: (alertId: string) => this.request(`/alert/history/${alertId}/dismiss`, { method: 'POST' }),
-  };
-
-  statistics = {
-    device: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/stat/device${query}`);
-    },
-    interface: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/stat/interface${query}`);
-    },
-    service: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/stat/service${query}`);
-    },
-    snmpPoller: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/stat/snmpPoller${query}`);
-    },
-  };
-
-  billing = {
-    clientUsage: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/billing/usage/client${query}`);
-    },
-    deviceUsage: (params?: any) => {
-      const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-      return this.request(`/billing/usage/device${query}`);
-    },
-  };
+  return { filters };
 }
 
 export function createAuvikClient(credentials: AuvikCredentials): AuvikClient {
-  // TODO: Replace with actual @wyre-technology/node-auvik client when ready
-  return new MockAuvikClient(credentials);
+  // Construct the real SDK client. Region defaults to us1 (preserving prior
+  // behavior) when the caller doesn't supply one via AUVIK_REGION / the
+  // x-auvik-region gateway header; the SDK can also auto-resolve, but we keep
+  // the explicit default to avoid per-request region probing.
+  const sdk = new AuvikSdkClient({
+    username: credentials.username,
+    apiKey: credentials.apiKey,
+    region: (credentials.region as AuvikRegion) || 'us1',
+  });
+
+  // Single-get SDK methods return a flattened resource object; tool handlers
+  // expect `{ data: <obj> }`, so wrap them.
+  const wrap = async <T>(promise: Promise<T>): Promise<{ data: T }> => ({ data: await promise });
+
+  return {
+    tenants: {
+      list: () => sdk.tenants.list(),
+      get: (tenantId) => wrap(sdk.tenants.get(tenantId)),
+      getDetail: (tenantId) => sdk.tenants.listDetail({ filters: { tenants: tenantId } }),
+    },
+
+    devices: {
+      list: (params) => sdk.inventoryDevice.listInfo(toListOptions(params)),
+      get: (deviceId) => wrap(sdk.inventoryDevice.getInfo(deviceId)),
+      getDetails: (deviceId) => wrap(sdk.inventoryDevice.getDetails(deviceId)),
+      getWarranty: (deviceId) => wrap(sdk.inventoryDevice.getWarranty(deviceId)),
+      getLifecycle: (deviceId) => wrap(sdk.inventoryDevice.getLifecycle(deviceId)),
+    },
+
+    networks: {
+      list: (params) => sdk.inventoryNetwork.listInfo(toListOptions(params)),
+      get: (networkId) => wrap(sdk.inventoryNetwork.getInfo(networkId)),
+    },
+
+    interfaces: {
+      list: (params) => sdk.inventoryInterface.listInfo(toListOptions(params)),
+    },
+
+    configurations: {
+      list: (params) => sdk.inventoryConfiguration.list(toListOptions(params)),
+      get: (configId) => wrap(sdk.inventoryConfiguration.get(configId)),
+    },
+
+    entities: {
+      listNotes: (params) => sdk.inventoryEntity.listNotes(toListOptions(params)),
+      listAudits: (params) => sdk.inventoryEntity.listAudits(toListOptions(params)),
+    },
+
+    alerts: {
+      list: (params) => sdk.alerts.listHistory(toListOptions(params)),
+      get: (alertId) => wrap(sdk.alerts.getHistory(alertId)),
+      dismiss: async (alertId) => {
+        await sdk.alerts.dismiss(alertId);
+        return { dismissed: true };
+      },
+    },
+
+    statistics: {
+      // Statistics endpoints take fromTime/thruTime at the top level (the SDK
+      // destructures them) plus filter_* params, so pass the args through.
+      device: (params) => sdk.statistics.getDeviceStatistics(params),
+      interface: (params) => sdk.statistics.getInterfaceStatistics(params),
+      service: (params) => sdk.statistics.getServiceStatistics(params),
+      snmpPoller: (params) => sdk.statistics.getSnmpPollerStatistics(params),
+    },
+
+    billing: {
+      clientUsage: (params) => sdk.billing.listUsageClient(toListOptions(params)),
+      deviceUsage: (params) => sdk.billing.listUsageDevice(toListOptions(params)),
+    },
+  };
 }
