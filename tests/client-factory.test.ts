@@ -41,7 +41,7 @@ describe('createAuvikClient (real SDK adapter)', () => {
     expect(urlOf()).toContain('networks=n1');
   });
 
-  it('devices.getDetails -> /inventory/device/details/{id} and wraps in { data }', async () => {
+  it('devices.getDetails -> /inventory/device/detail/{id} and wraps in { data }', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true, status: 200,
       headers: { get: () => 'application/json' },
@@ -49,7 +49,7 @@ describe('createAuvikClient (real SDK adapter)', () => {
       text: async () => '',
     });
     const res = await client().devices.getDetails('d1');
-    expect(urlOf()).toBe(`${BASE}/inventory/device/details/d1`);
+    expect(urlOf()).toBe(`${BASE}/inventory/device/detail/d1`);
     expect(res.data).toBeTruthy();
     expect(res.data.id).toBe('d1');
   });
@@ -94,17 +94,20 @@ describe('createAuvikClient (real SDK adapter)', () => {
     expect(res).toEqual({ dismissed: true });
   });
 
-  it('statistics.device -> /stat/device with fromTime/thruTime', async () => {
-    await client().statistics.device({ fromTime: 'T1', thruTime: 'T2', filter_devices: 'd1' });
+  it('statistics.device -> /stat/device/{statId} with filter[fromTime]/filter[interval]/filter[deviceId]', async () => {
+    await client().statistics.device({ statId: 'cpuUtilization', fromTime: 'T1', interval: 'hour', thruTime: 'T2', filter_devices: 'd1' });
     const u = urlOf();
-    expect(u.startsWith(`${BASE}/stat/device`)).toBe(true);
-    expect(u).toContain('fromTime=T1');
-    expect(u).toContain('thruTime=T2');
+    expect(u.startsWith(`${BASE}/stat/device/cpuUtilization`)).toBe(true);
+    expect(u).toContain('filter%5BfromTime%5D=T1');
+    expect(u).toContain('filter%5Binterval%5D=hour');
+    expect(u).toContain('filter%5BdeviceId%5D=d1');
   });
 
-  it('statistics.snmpPoller -> /stat/snmpPoller', async () => {
-    await client().statistics.snmpPoller({ fromTime: 'T1', thruTime: 'T2', filter_pollers: 'p1' });
-    expect(urlOf().startsWith(`${BASE}/stat/snmpPoller`)).toBe(true);
+  it('statistics.snmpPoller -> /stat/oid/{statId}', async () => {
+    await client().statistics.snmpPoller({ statId: 'abc', filter_pollers: 'p1' });
+    const u = urlOf();
+    expect(u.startsWith(`${BASE}/stat/oid/abc`)).toBe(true);
+    expect(u).toContain('filter%5Boid%5D=p1');
   });
 
   it('billing.clientUsage -> /billing/usage/client', async () => {

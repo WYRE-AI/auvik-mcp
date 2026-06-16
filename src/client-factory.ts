@@ -83,6 +83,29 @@ function toListOptions(params?: Record<string, unknown>): { filters: Record<stri
   return { filters };
 }
 
+// Map statistics tool args into the SDK's StatisticsOptions. statId + interval
+// are required by Auvik; fromTime/thruTime/tenants pass through; the
+// type-specific id filter is keyed as the API expects (e.g. filter[deviceId]).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toStatOptions(
+  params: Record<string, unknown>,
+  filterKey: string,
+  filterValue: unknown,
+): any {
+  const filters: Record<string, string> = {};
+  if (filterValue !== undefined && filterValue !== null && filterValue !== '') {
+    filters[filterKey] = String(filterValue);
+  }
+  return {
+    statId: params.statId,
+    fromTime: params.fromTime,
+    interval: params.interval,
+    ...(params.thruTime ? { thruTime: params.thruTime } : {}),
+    ...(params.tenants ? { tenants: params.tenants } : {}),
+    filters,
+  };
+}
+
 export function createAuvikClient(credentials: AuvikCredentials): AuvikClient {
   // Construct the real SDK client. Region defaults to us1 (preserving prior
   // behavior) when the caller doesn't supply one via AUVIK_REGION / the
@@ -102,7 +125,10 @@ export function createAuvikClient(credentials: AuvikCredentials): AuvikClient {
     tenants: {
       list: () => sdk.tenants.list(),
       get: (tenantId) => wrap(sdk.tenants.get(tenantId)),
-      getDetail: (tenantId) => sdk.tenants.listDetail({ filters: { tenants: tenantId } }),
+      // Single-tenant detail is /tenants/detail/{id} (by numeric id) — the same
+      // endpoint as get(). Using the id avoids the list endpoint's required
+      // `filter[tenantDomainPrefix]`.
+      getDetail: (tenantId) => wrap(sdk.tenants.get(tenantId)),
     },
 
     devices: {
@@ -142,12 +168,18 @@ export function createAuvikClient(credentials: AuvikCredentials): AuvikClient {
     },
 
     statistics: {
-      // Statistics endpoints take fromTime/thruTime at the top level (the SDK
-      // destructures them) plus filter_* params, so pass the args through.
-      device: (params) => sdk.statistics.getDeviceStatistics(params),
-      interface: (params) => sdk.statistics.getInterfaceStatistics(params),
-      service: (params) => sdk.statistics.getServiceStatistics(params),
-      snmpPoller: (params) => sdk.statistics.getSnmpPollerStatistics(params),
+      // Auvik statistics are /stat/{type}/{statId} with filter[fromTime] +
+      // filter[interval] (required) and a type-specific id filter. Map the tool
+      // args (statId/interval/fromTime/thruTime/tenants + filter_*) into the
+      // SDK's options shape, keying the type filter as the API expects.
+      device: (params = {}) => sdk.statistics.getDeviceStatistics(
+        toStatOptions(params, 'filter[deviceId]', params.filter_devices)),
+      interface: (params = {}) => sdk.statistics.getInterfaceStatistics(
+        toStatOptions(params, 'filter[interfaceId]', params.filter_interfaces)),
+      service: (params = {}) => sdk.statistics.getServiceStatistics(
+        toStatOptions(params, 'filter[serviceId]', params.filter_services)),
+      snmpPoller: (params = {}) => sdk.statistics.getSnmpPollerStatistics(
+        toStatOptions(params, 'filter[oid]', params.filter_pollers)),
     },
 
     billing: {

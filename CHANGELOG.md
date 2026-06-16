@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Single-resource `get`/`detail`/`statistics` tools returned `-32600: resource not found` (and `tenants_detail` a `tenantDomainPrefix` 400).** Bumped `@wyre-technology/node-auvik` to `^1.2.3`, which corrects the single-tenant (`/tenants/detail/{id}`), device-detail (`/inventory/device/detail/{id}`), and statistics (`/stat/{type}/{statId}`) endpoint paths. Updated the adapter so `auvik_tenants_get`/`auvik_tenants_detail` read the tenant by id, and the statistics tools now take required `statId` + `interval` params (Auvik statistics need a metric id and reporting interval).
+
+### Fixed
 - **`auvik_alerts_list` / `_get` / `_dismiss` returned `-32600: Auvik resource not found`.** The alert endpoint paths in `@wyre-technology/node-auvik` were wrong (`/alert/history*` instead of `/alert/history/info`, `/alert/history/info/{id}`, `/alert/dismiss/{id}`). Bumped the SDK to `^1.2.2`, which corrects them. (Updated the adapter integration tests to assert the corrected alert paths.)
 - **All `/inventory`, tenant, statistics, and billing tools failed with `Cannot read properties of undefined (reading 'id')`.** Root cause was in `@wyre-technology/node-auvik`: its HTTP client only parsed responses with `content-type: application/json`, but the Auvik API is JSON:API and responds with `application/vnd.api+json`, so every successful response was dropped to `{}` and the resource mappers threw. Bumped the SDK to `^1.2.1`, which matches any JSON content-type.
 

@@ -9,12 +9,14 @@ export const statisticsDeviceTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      statId: { type: 'string', description: 'Statistic to fetch (path segment), e.g. cpuUtilization, bandwidth, storageUtilization' },
       fromTime: { type: 'string', description: 'Start time (ISO 8601)' },
-      thruTime: { type: 'string', description: 'End time (ISO 8601)' },
-      filter_devices: { type: 'string', description: 'Filter by device IDs' },
+      interval: { type: 'string', description: 'Reporting interval: minute, hour, day, month, or year' },
+      thruTime: { type: 'string', description: 'End time (ISO 8601, optional; defaults to now)' },
+      filter_devices: { type: 'string', description: 'Filter by device ID(s) (optional)' },
       tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
     },
-    required: ['fromTime', 'thruTime', 'filter_devices'],
+    required: ['statId', 'fromTime', 'interval'],
     additionalProperties: false,
   },
 };
@@ -25,12 +27,14 @@ export const statisticsInterfaceTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      statId: { type: 'string', description: 'Statistic to fetch (path segment), e.g. bandwidth, packetLoss, utilization' },
       fromTime: { type: 'string', description: 'Start time (ISO 8601)' },
-      thruTime: { type: 'string', description: 'End time (ISO 8601)' },
-      filter_interfaces: { type: 'string', description: 'Filter by interface IDs' },
+      interval: { type: 'string', description: 'Reporting interval: minute, hour, day, month, or year' },
+      thruTime: { type: 'string', description: 'End time (ISO 8601, optional; defaults to now)' },
+      filter_interfaces: { type: 'string', description: 'Filter by interface ID(s) (optional)' },
       tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
     },
-    required: ['fromTime', 'thruTime', 'filter_interfaces'],
+    required: ['statId', 'fromTime', 'interval'],
     additionalProperties: false,
   },
 };
@@ -41,12 +45,14 @@ export const statisticsServiceTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      statId: { type: 'string', description: 'Statistic to fetch (path segment)' },
       fromTime: { type: 'string', description: 'Start time (ISO 8601)' },
-      thruTime: { type: 'string', description: 'End time (ISO 8601)' },
-      filter_services: { type: 'string', description: 'Filter by service IDs' },
+      interval: { type: 'string', description: 'Reporting interval: minute, hour, day, month, or year' },
+      thruTime: { type: 'string', description: 'End time (ISO 8601, optional; defaults to now)' },
+      filter_services: { type: 'string', description: 'Filter by service ID(s) (optional)' },
       tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
     },
-    required: ['fromTime', 'thruTime', 'filter_services'],
+    required: ['statId', 'fromTime', 'interval'],
     additionalProperties: false,
   },
 };
@@ -57,12 +63,11 @@ export const statisticsSnmpPollerTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
-      fromTime: { type: 'string', description: 'Start time (ISO 8601)' },
-      thruTime: { type: 'string', description: 'End time (ISO 8601)' },
-      filter_pollers: { type: 'string', description: 'Filter by SNMP poller IDs' },
+      statId: { type: 'string', description: 'OID statistic to fetch (path segment)' },
+      filter_pollers: { type: 'string', description: 'Filter by SNMP poller / OID (optional)' },
       tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
     },
-    required: ['fromTime', 'thruTime', 'filter_pollers'],
+    required: ['statId'],
     additionalProperties: false,
   },
 };
