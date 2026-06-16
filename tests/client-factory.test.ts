@@ -100,11 +100,21 @@ describe('createAuvikClient (real SDK adapter)', () => {
     expect(u).toContain('filter%5BdeviceId%5D=d1');
   });
 
-  it('statistics.snmpPoller -> /stat/oid/{statId}', async () => {
+  it('statistics.snmpPoller -> /stat/oid/{statId} (no time window)', async () => {
     await client().statistics.snmpPoller({ statId: 'abc', filter_pollers: 'p1' });
     const u = urlOf();
     expect(u.startsWith(`${BASE}/stat/oid/abc`)).toBe(true);
     expect(u).toContain('filter%5Boid%5D=p1');
+    // snmpPoller has no fromTime, so the adapter must not inject a thruTime.
+    expect(u).not.toContain('thruTime');
+  });
+
+  it('statistics.device defaults thruTime to now when omitted (Auvik requires it)', async () => {
+    await client().statistics.device({ statId: 'cpuUtilization', fromTime: 'T1', interval: 'hour', filter_devices: 'd1' });
+    const u = urlOf();
+    expect(u).toContain('filter%5BfromTime%5D=T1');
+    // Caller omitted thruTime; the adapter defaults it to now so the param is present.
+    expect(u).toContain('filter%5BthruTime%5D=');
   });
 
   it('billing.clientUsage -> /billing/usage/client', async () => {
