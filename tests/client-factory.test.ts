@@ -113,7 +113,7 @@ describe('createAuvikClient (real SDK adapter)', () => {
     await client().statistics.device({ statId: 'cpuUtilization', fromTime: 'T1', interval: 'hour', filter_devices: 'd1' });
     const u = urlOf();
     expect(u).toContain('filter%5BfromTime%5D=T1');
-    // Caller omitted thruTime; the adapter defaults it to now so the param is present.
+    // Caller omitted thruTime; the SDK defaults it to now so the param is present.
     expect(u).toContain('filter%5BthruTime%5D=');
   });
 
@@ -125,6 +125,17 @@ describe('createAuvikClient (real SDK adapter)', () => {
     expect(u).toContain('filter%5BfromDate%5D=2026-01-01');
     expect(u).toContain('filter%5BthruDate%5D=2026-01-31');
     expect(u).toContain('tenants=t1'); // tenants stays a plain scope param
+  });
+
+  it('billing.deviceUsage -> /billing/usage/device/{id} with filter[fromDate]/filter[thruDate]', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ data: { id: 'dev1', type: 'billingUsage', attributes: { cost: 5 } } }),
+    );
+    const res = await client().billing.deviceUsage({ deviceId: 'dev1', fromDate: '2026-01-01', thruDate: '2026-01-31' });
+    const u = urlOf();
+    expect(u.startsWith(`${BASE}/billing/usage/device/dev1`)).toBe(true); // device id in the path
+    expect(u).toContain('filter%5BfromDate%5D=2026-01-01');
+    expect(res.data.id).toBe('dev1'); // single resource wrapped in { data }
   });
 
   it('tenants.list -> /tenants', async () => {

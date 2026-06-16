@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **`auvik_billing_client_usage` returned `400 Field "fromDate" of required type "String!" was not provided`.** The tool exposed `fromTime`/`thruTime`, but Auvik's billing usage endpoint filters by date via the JSON:API params `filter[fromDate]`/`filter[thruDate]` (`YYYY-MM-DD`) — so the date filter arrived empty. The tools now take `fromDate`/`thruDate` and the adapter maps them to the bracketed `filter[...]` query params (`tenants` stays a plain scope param). **Note:** `auvik_billing_device_usage` needs a further fix in `@wyre-technology/node-auvik` — Auvik's device-usage route is `/billing/usage/device/{id}` (requires a device id in the path), which the SDK's `listUsageDevice` does not yet pass; tracked separately.
+### Changed
+- **Bumped `@wyre-technology/node-auvik` to `^1.2.4`** and moved the billing-date and statistics-`thruTime` wire-format knowledge into the SDK (where it belongs), so the adapter no longer hand-maps it. `auvik_billing_device_usage` now works: it takes a required `deviceId` and calls the SDK's `getUsageDevice` against Auvik's per-device route `/billing/usage/device/{id}` (the SDK previously hit the non-existent `/billing/usage/device`).
 
 ### Fixed
-- **Time-series statistics tools (`auvik_statistics_device` / `_interface` / `_service`) returned `400 Field "thruTime" of required type "DateTime!" was not provided` when `thruTime` was omitted.** The tool schema documents `thruTime` as optional ("defaults to now"), but nothing implemented that default and Auvik *requires* `filter[thruTime]` for time-series stats — so any caller trusting the schema got a 400. The adapter now defaults `thruTime` to the current time when a time window is requested (`fromTime` present) and `thruTime` is omitted. `auvik_statistics_snmp_poller` has no time window and is unaffected.
+- **`auvik_billing_client_usage` returned `400 Field "fromDate" of required type "String!" was not provided`.** The tool exposed `fromTime`/`thruTime`, but Auvik's billing usage endpoint filters by date via the JSON:API params `filter[fromDate]`/`filter[thruDate]` (`YYYY-MM-DD`). The tools now take `fromDate`/`thruDate`; node-auvik `^1.2.4` builds the bracketed `filter[...]` params (`tenants` stays a plain scope param).
+- **`auvik_billing_device_usage` never returned data** (it hit `/billing/usage/device` with no device id). It now requires a `deviceId` and queries the correct per-device route via node-auvik `^1.2.4`.
+
+### Fixed
+- **Time-series statistics tools (`auvik_statistics_device` / `_interface` / `_service`) returned `400 Field "thruTime" of required type "DateTime!" was not provided` when `thruTime` was omitted.** The tool schema documents `thruTime` as optional ("defaults to now"), but nothing implemented that default and Auvik *requires* `filter[thruTime]` for time-series stats. node-auvik `^1.2.4` now defaults `thruTime` to the current time when a time window is requested (`fromTime` present) and `thruTime` is omitted. `auvik_statistics_snmp_poller` has no time window and is unaffected.
 
 ### Fixed
 - **`auvik_tenants_get` / `auvik_tenants_detail` returned `400 tenantDomainPrefix is required`.** Auvik's tenant-detail endpoint is keyed by `tenantDomainPrefix`, not the numeric tenant id. The adapter now resolves the numeric id to its domain prefix (via the tenant list) and queries `/tenants/detail?tenantDomainPrefix=<prefix>` (a non-numeric arg is treated as the prefix directly). Note: this is a **plain** query param, not a JSON:API `filter[tenantDomainPrefix]` param — the bracketed form still returned the 400.
