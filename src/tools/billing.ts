@@ -20,15 +20,16 @@ export const billingClientUsageTool: Tool = {
 
 export const billingDeviceUsageTool: Tool = {
   name: 'auvik_billing_device_usage',
-  description: 'Get device billing usage information',
+  description: 'Get billing usage information for a specific device',
   inputSchema: {
     type: 'object',
     properties: {
+      deviceId: { type: 'string', description: 'The Auvik device ID' },
       fromDate: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
       thruDate: { type: 'string', description: 'End date (YYYY-MM-DD)' },
       tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
     },
-    required: ['fromDate', 'thruDate'],
+    required: ['deviceId', 'fromDate', 'thruDate'],
     additionalProperties: false,
   },
 };

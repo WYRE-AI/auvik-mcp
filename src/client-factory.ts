@@ -73,35 +73,21 @@ export interface AuvikClient {
 // Tool args arrive as a loose object (e.g. { tenants: '123', filter_x: 'y' }).
 // The SDK's list endpoints take their query params under `filters`, so map the
 // args into `{ filters }`, coercing values to strings and dropping empties.
-// `keyMap` optionally renames arg keys to the API's query-param names (e.g.
-// billing's `fromDate` -> `filter[fromDate]`); unmapped keys pass through.
-function toListOptions(
-  params?: Record<string, unknown>,
-  keyMap: Record<string, string> = {},
-): { filters: Record<string, string> } {
+function toListOptions(params?: Record<string, unknown>): { filters: Record<string, string> } {
   const filters: Record<string, string> = {};
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value !== undefined && value !== null && value !== '') {
-      filters[keyMap[key] ?? key] = String(value);
+      filters[key] = String(value);
     }
   }
   return { filters };
 }
 
-// Auvik billing usage filters by DATE via the JSON:API params
-// `filter[fromDate]`/`filter[thruDate]` (YYYY-MM-DD). (Ideally the SDK's billing
-// resource would own this naming, mirroring statistics' timeStatParams — see the
-// node-auvik TODO at the billing adapter below.)
-const BILLING_DATE_FILTERS = { fromDate: 'filter[fromDate]', thruDate: 'filter[thruDate]' };
-
 // Map statistics tool args into the SDK's StatisticsOptions. statId + interval
 // are required by Auvik; fromTime/thruTime/tenants pass through; the
 // type-specific id filter is keyed as the API expects (e.g. filter[deviceId]).
-// Auvik actually *requires* `filter[thruTime]` for time-series stats (it 400s
-// without it), even though the tool schema documents thruTime as "defaults to
-// now" — so when a time window is requested (fromTime present) but thruTime is
-// omitted, default it to now to honor that contract. snmpPoller has no fromTime
-// and ignores the time window, so it is left untouched.
+// thruTime is forwarded only when supplied — node-auvik defaults filter[thruTime]
+// to now when omitted (Auvik requires it), so the adapter need not.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toStatOptions(
   params: Record<string, unknown>,
@@ -112,12 +98,11 @@ function toStatOptions(
   if (filterValue !== undefined && filterValue !== null && filterValue !== '') {
     filters[filterKey] = String(filterValue);
   }
-  const thruTime = params.thruTime || (params.fromTime ? new Date().toISOString() : undefined);
   return {
     statId: params.statId,
     fromTime: params.fromTime,
     interval: params.interval,
-    ...(thruTime ? { thruTime } : {}),
+    ...(params.thruTime ? { thruTime: params.thruTime } : {}),
     ...(params.tenants ? { tenants: params.tenants } : {}),
     filters,
   };
@@ -214,11 +199,15 @@ export function createAuvikClient(credentials: AuvikCredentials): AuvikClient {
     },
 
     billing: {
-      clientUsage: (params) => sdk.billing.listUsageClient(toListOptions(params, BILLING_DATE_FILTERS)),
-      // TODO(node-auvik): deviceUsage also needs a device id in the path
-      // (/billing/usage/device/{id}), which the SDK route does not yet pass —
-      // tracked as a node-auvik follow-up.
-      deviceUsage: (params) => sdk.billing.listUsageDevice(toListOptions(params, BILLING_DATE_FILTERS)),
+      // The SDK owns the billing wire-format: it takes named { fromDate,
+      // thruDate, tenants } and emits filter[fromDate]/filter[thruDate].
+      clientUsage: (params = {}) => sdk.billing.listUsageClient({
+        fromDate: params.fromDate, thruDate: params.thruDate, tenants: params.tenants,
+      }),
+      // Device usage is per-device: /billing/usage/device/{id}.
+      deviceUsage: (params = {}) => wrap(sdk.billing.getUsageDevice(params.deviceId, {
+        fromDate: params.fromDate, thruDate: params.thruDate, tenants: params.tenants,
+      })),
     },
   };
 }
