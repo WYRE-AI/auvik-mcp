@@ -73,15 +73,26 @@ export interface AuvikClient {
 // Tool args arrive as a loose object (e.g. { tenants: '123', filter_x: 'y' }).
 // The SDK's list endpoints take their query params under `filters`, so map the
 // args into `{ filters }`, coercing values to strings and dropping empties.
-function toListOptions(params?: Record<string, unknown>): { filters: Record<string, string> } {
+// `keyMap` optionally renames arg keys to the API's query-param names (e.g.
+// billing's `fromDate` -> `filter[fromDate]`); unmapped keys pass through.
+function toListOptions(
+  params?: Record<string, unknown>,
+  keyMap: Record<string, string> = {},
+): { filters: Record<string, string> } {
   const filters: Record<string, string> = {};
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value !== undefined && value !== null && value !== '') {
-      filters[key] = String(value);
+      filters[keyMap[key] ?? key] = String(value);
     }
   }
   return { filters };
 }
+
+// Auvik billing usage filters by DATE via the JSON:API params
+// `filter[fromDate]`/`filter[thruDate]` (YYYY-MM-DD). (Ideally the SDK's billing
+// resource would own this naming, mirroring statistics' timeStatParams — see the
+// node-auvik TODO at the billing adapter below.)
+const BILLING_DATE_FILTERS = { fromDate: 'filter[fromDate]', thruDate: 'filter[thruDate]' };
 
 // Map statistics tool args into the SDK's StatisticsOptions. statId + interval
 // are required by Auvik; fromTime/thruTime/tenants pass through; the
@@ -203,8 +214,11 @@ export function createAuvikClient(credentials: AuvikCredentials): AuvikClient {
     },
 
     billing: {
-      clientUsage: (params) => sdk.billing.listUsageClient(toListOptions(params)),
-      deviceUsage: (params) => sdk.billing.listUsageDevice(toListOptions(params)),
+      clientUsage: (params) => sdk.billing.listUsageClient(toListOptions(params, BILLING_DATE_FILTERS)),
+      // TODO(node-auvik): deviceUsage also needs a device id in the path
+      // (/billing/usage/device/{id}), which the SDK route does not yet pass —
+      // tracked as a node-auvik follow-up.
+      deviceUsage: (params) => sdk.billing.listUsageDevice(toListOptions(params, BILLING_DATE_FILTERS)),
     },
   };
 }

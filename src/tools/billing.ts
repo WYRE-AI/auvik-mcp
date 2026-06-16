@@ -9,11 +9,11 @@ export const billingClientUsageTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
-      fromTime: { type: 'string', description: 'Start time (ISO 8601)' },
-      thruTime: { type: 'string', description: 'End time (ISO 8601)' },
+      fromDate: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
+      thruDate: { type: 'string', description: 'End date (YYYY-MM-DD)' },
       tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
     },
-    required: ['fromTime', 'thruTime'],
+    required: ['fromDate', 'thruDate'],
     additionalProperties: false,
   },
 };
@@ -24,11 +24,11 @@ export const billingDeviceUsageTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
-      fromTime: { type: 'string', description: 'Start time (ISO 8601)' },
-      thruTime: { type: 'string', description: 'End time (ISO 8601)' },
+      fromDate: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
+      thruDate: { type: 'string', description: 'End date (YYYY-MM-DD)' },
       tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
     },
-    required: ['fromTime', 'thruTime'],
+    required: ['fromDate', 'thruDate'],
     additionalProperties: false,
   },
 };
