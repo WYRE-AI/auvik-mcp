@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **`auvik_tenants_get` / `auvik_tenants_detail` returned `400 tenantDomainPrefix is required`.** Auvik's tenant-detail endpoint is keyed by `tenantDomainPrefix`, not the numeric tenant id. The adapter now resolves the numeric id to its domain prefix (via the tenant list) and queries `/tenants/detail?filter[tenantDomainPrefix]=<prefix>` (a non-numeric arg is treated as the prefix directly).
+- **`auvik_tenants_get` / `auvik_tenants_detail` returned `400 tenantDomainPrefix is required`.** Auvik's tenant-detail endpoint is keyed by `tenantDomainPrefix`, not the numeric tenant id. The adapter now resolves the numeric id to its domain prefix (via the tenant list) and queries `/tenants/detail?tenantDomainPrefix=<prefix>` (a non-numeric arg is treated as the prefix directly). Note: this is a **plain** query param, not a JSON:API `filter[tenantDomainPrefix]` param — the bracketed form still returned the 400.
 
 ### Fixed
 - **Single-resource `get`/`detail`/`statistics` tools returned `-32600: resource not found` (and `tenants_detail` a `tenantDomainPrefix` 400).** Bumped `@wyre-technology/node-auvik` to `^1.2.3`, which corrects the single-tenant (`/tenants/detail/{id}`), device-detail (`/inventory/device/detail/{id}`), and statistics (`/stat/{type}/{statId}`) endpoint paths. Updated the adapter so `auvik_tenants_get`/`auvik_tenants_detail` read the tenant by id, and the statistics tools now take required `statId` + `interval` params (Auvik statistics need a metric id and reporting interval).
