@@ -76,12 +76,12 @@ describe('createAuvikClient (real SDK adapter)', () => {
     expect(res.data.id).toBe('c1');
   });
 
-  it('alerts.list -> /alert/history', async () => {
+  it('alerts.list -> /alert/history/info', async () => {
     await client().alerts.list();
-    expect(urlOf()).toBe(`${BASE}/alert/history`);
+    expect(urlOf()).toBe(`${BASE}/alert/history/info`);
   });
 
-  it('alerts.dismiss -> POST /alert/history/{id}/dismiss', async () => {
+  it('alerts.dismiss -> POST /alert/dismiss/{id}', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true, status: 204,
       headers: { get: () => null },
@@ -89,7 +89,7 @@ describe('createAuvikClient (real SDK adapter)', () => {
       text: async () => '',
     });
     const res = await client().alerts.dismiss('a1');
-    expect(urlOf()).toBe(`${BASE}/alert/history/a1/dismiss`);
+    expect(urlOf()).toBe(`${BASE}/alert/dismiss/a1`);
     expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST' });
     expect(res).toEqual({ dismissed: true });
   });
