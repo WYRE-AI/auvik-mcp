@@ -124,7 +124,8 @@ export function createAuvikClient(credentials: AuvikCredentials): AuvikClient {
   // Auvik's tenant-detail endpoint is keyed by `tenantDomainPrefix`, not the
   // numeric tenant id (passing the id yields HTTP 400 "tenantDomainPrefix is
   // required"). Tool callers pass the numeric id, so resolve it to the domain
-  // prefix via the tenant list, then query /tenants/detail with that filter.
+  // prefix via the tenant list, then query /tenants/detail with the plain
+  // `tenantDomainPrefix` query param (not a JSON:API `filter[...]` param).
   // If a non-numeric value is passed, treat it as the prefix directly.
   const tenantDetail = async (tenantId: string) => {
     let prefix = String(tenantId);
@@ -134,7 +135,7 @@ export function createAuvikClient(credentials: AuvikCredentials): AuvikClient {
       const dp = match && (match as { domainPrefix?: unknown }).domainPrefix;
       if (typeof dp === 'string' && dp) prefix = dp;
     }
-    return sdk.tenants.listDetail({ filters: { 'filter[tenantDomainPrefix]': prefix } });
+    return sdk.tenants.listDetail({ filters: { tenantDomainPrefix: prefix } });
   };
 
   return {

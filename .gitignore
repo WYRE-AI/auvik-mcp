@@ -128,3 +128,6 @@ npm-debug.log
 .Trashes
 ehthumbs.db
 Thumbs.dbgraphify-out/
+
+# graphify analysis artifacts
+graphify-out/

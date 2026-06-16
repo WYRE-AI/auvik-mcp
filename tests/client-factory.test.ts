@@ -10,19 +10,27 @@ describe('createAuvikClient (real SDK adapter)', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
   const BASE = 'https://auvikapi.us1.my.auvik.com/v1';
 
+  // Builds a stubbed fetch Response. Defaults to a 200 JSON:API reply; pass
+  // { status, contentType } to vary (e.g. a 204 dismiss with no content type).
+  const jsonResponse = (
+    body: unknown,
+    opts: { status?: number; contentType?: string | null } = {},
+  ) => {
+    const { status = 200, contentType = 'application/json' } = opts;
+    return {
+      ok: status < 400,
+      status,
+      headers: { get: () => contentType },
+      json: async () => body,
+      text: async () => '',
+    };
+  };
+
   beforeEach(() => {
     // JSON:API-shaped response: list endpoints get an array, gets get one object.
-    fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      headers: { get: () => 'application/json' },
-      json: async () => ({
-        data: [{ id: 'x1', type: 'thing', attributes: { name: 'n' } }],
-        links: {},
-        meta: {},
-      }),
-      text: async () => '',
-    });
+    fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ data: [{ id: 'x1', type: 'thing', attributes: { name: 'n' } }], links: {}, meta: {} }),
+    );
     vi.stubGlobal('fetch', fetchMock);
   });
 
@@ -42,12 +50,9 @@ describe('createAuvikClient (real SDK adapter)', () => {
   });
 
   it('devices.getDetails -> /inventory/device/detail/{id} and wraps in { data }', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true, status: 200,
-      headers: { get: () => 'application/json' },
-      json: async () => ({ data: { id: 'd1', type: 'device', attributes: { name: 'sw' } } }),
-      text: async () => '',
-    });
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ data: { id: 'd1', type: 'device', attributes: { name: 'sw' } } }),
+    );
     const res = await client().devices.getDetails('d1');
     expect(urlOf()).toBe(`${BASE}/inventory/device/detail/d1`);
     expect(res.data).toBeTruthy();
@@ -65,12 +70,9 @@ describe('createAuvikClient (real SDK adapter)', () => {
   });
 
   it('configurations.get -> /inventory/configuration/{id} wrapped in { data }', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true, status: 200,
-      headers: { get: () => 'application/json' },
-      json: async () => ({ data: { id: 'c1', type: 'configuration', attributes: {} } }),
-      text: async () => '',
-    });
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ data: { id: 'c1', type: 'configuration', attributes: {} } }),
+    );
     const res = await client().configurations.get('c1');
     expect(urlOf()).toBe(`${BASE}/inventory/configuration/c1`);
     expect(res.data.id).toBe('c1');
@@ -82,12 +84,7 @@ describe('createAuvikClient (real SDK adapter)', () => {
   });
 
   it('alerts.dismiss -> POST /alert/dismiss/{id}', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true, status: 204,
-      headers: { get: () => null },
-      json: async () => ({}),
-      text: async () => '',
-    });
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, { status: 204, contentType: null }));
     const res = await client().alerts.dismiss('a1');
     expect(urlOf()).toBe(`${BASE}/alert/dismiss/a1`);
     expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST' });
@@ -118,5 +115,29 @@ describe('createAuvikClient (real SDK adapter)', () => {
   it('tenants.list -> /tenants', async () => {
     await client().tenants.list();
     expect(urlOf()).toBe(`${BASE}/tenants`);
+  });
+
+  it('tenants.get with a non-numeric prefix -> /tenants/detail?tenantDomainPrefix=<prefix> (plain param)', async () => {
+    await client().tenants.get('wyretechnologyhq');
+    const u = urlOf();
+    expect(u.startsWith(`${BASE}/tenants/detail`)).toBe(true);
+    // Plain query param, NOT JSON:API filter[tenantDomainPrefix] (which 400s).
+    expect(u).toContain('tenantDomainPrefix=wyretechnologyhq');
+    expect(u).not.toContain('filter');
+  });
+
+  it('tenants.get with a numeric id resolves to the domain prefix via the tenant list', async () => {
+    // First fetch (the tenant list) returns the id->domainPrefix mapping.
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: [{ id: '1382977701868441341', type: 'tenant', attributes: { domainPrefix: 'wyretechnologyhq' } }],
+        links: {}, meta: {},
+      }),
+    );
+    await client().tenants.get('1382977701868441341');
+    expect(urlOf(0)).toBe(`${BASE}/tenants`); // resolution step
+    const detailUrl = urlOf(1);
+    expect(detailUrl.startsWith(`${BASE}/tenants/detail`)).toBe(true);
+    expect(detailUrl).toContain('tenantDomainPrefix=wyretechnologyhq');
   });
 });
