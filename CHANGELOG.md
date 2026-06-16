@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`auvik_alerts_list` / `_get` / `_dismiss` returned `-32600: Auvik resource not found`.** The alert endpoint paths in `@wyre-technology/node-auvik` were wrong (`/alert/history*` instead of `/alert/history/info`, `/alert/history/info/{id}`, `/alert/dismiss/{id}`). Bumped the SDK to `^1.2.2`, which corrects them. (Updated the adapter integration tests to assert the corrected alert paths.)
 - **All `/inventory`, tenant, statistics, and billing tools failed with `Cannot read properties of undefined (reading 'id')`.** Root cause was in `@wyre-technology/node-auvik`: its HTTP client only parsed responses with `content-type: application/json`, but the Auvik API is JSON:API and responds with `application/vnd.api+json`, so every successful response was dropped to `{}` and the resource mappers threw. Bumped the SDK to `^1.2.1`, which matches any JSON content-type.
 
 ### Changed
