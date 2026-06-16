@@ -121,14 +121,27 @@ export function createAuvikClient(credentials: AuvikCredentials): AuvikClient {
   // expect `{ data: <obj> }`, so wrap them.
   const wrap = async <T>(promise: Promise<T>): Promise<{ data: T }> => ({ data: await promise });
 
+  // Auvik's tenant-detail endpoint is keyed by `tenantDomainPrefix`, not the
+  // numeric tenant id (passing the id yields HTTP 400 "tenantDomainPrefix is
+  // required"). Tool callers pass the numeric id, so resolve it to the domain
+  // prefix via the tenant list, then query /tenants/detail with that filter.
+  // If a non-numeric value is passed, treat it as the prefix directly.
+  const tenantDetail = async (tenantId: string) => {
+    let prefix = String(tenantId);
+    if (/^\d+$/.test(prefix)) {
+      const list = await sdk.tenants.list();
+      const match = (list.data || []).find((t) => String((t as { id?: unknown }).id) === prefix);
+      const dp = match && (match as { domainPrefix?: unknown }).domainPrefix;
+      if (typeof dp === 'string' && dp) prefix = dp;
+    }
+    return sdk.tenants.listDetail({ filters: { 'filter[tenantDomainPrefix]': prefix } });
+  };
+
   return {
     tenants: {
       list: () => sdk.tenants.list(),
-      get: (tenantId) => wrap(sdk.tenants.get(tenantId)),
-      // Single-tenant detail is /tenants/detail/{id} (by numeric id) — the same
-      // endpoint as get(). Using the id avoids the list endpoint's required
-      // `filter[tenantDomainPrefix]`.
-      getDetail: (tenantId) => wrap(sdk.tenants.get(tenantId)),
+      get: (tenantId) => tenantDetail(tenantId),
+      getDetail: (tenantId) => tenantDetail(tenantId),
     },
 
     devices: {
