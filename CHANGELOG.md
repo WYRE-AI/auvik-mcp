@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Time-series statistics tools (`auvik_statistics_device` / `_interface` / `_service`) returned `400 Field "thruTime" of required type "DateTime!" was not provided` when `thruTime` was omitted.** The tool schema documents `thruTime` as optional ("defaults to now"), but nothing implemented that default and Auvik *requires* `filter[thruTime]` for time-series stats — so any caller trusting the schema got a 400. The adapter now defaults `thruTime` to the current time when a time window is requested (`fromTime` present) and `thruTime` is omitted. `auvik_statistics_snmp_poller` has no time window and is unaffected.
+
+### Fixed
 - **`auvik_tenants_get` / `auvik_tenants_detail` returned `400 tenantDomainPrefix is required`.** Auvik's tenant-detail endpoint is keyed by `tenantDomainPrefix`, not the numeric tenant id. The adapter now resolves the numeric id to its domain prefix (via the tenant list) and queries `/tenants/detail?tenantDomainPrefix=<prefix>` (a non-numeric arg is treated as the prefix directly). Note: this is a **plain** query param, not a JSON:API `filter[tenantDomainPrefix]` param — the bracketed form still returned the 400.
 
 ### Fixed

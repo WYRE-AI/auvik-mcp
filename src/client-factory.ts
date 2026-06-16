@@ -86,6 +86,11 @@ function toListOptions(params?: Record<string, unknown>): { filters: Record<stri
 // Map statistics tool args into the SDK's StatisticsOptions. statId + interval
 // are required by Auvik; fromTime/thruTime/tenants pass through; the
 // type-specific id filter is keyed as the API expects (e.g. filter[deviceId]).
+// Auvik actually *requires* `filter[thruTime]` for time-series stats (it 400s
+// without it), even though the tool schema documents thruTime as "defaults to
+// now" — so when a time window is requested (fromTime present) but thruTime is
+// omitted, default it to now to honor that contract. snmpPoller has no fromTime
+// and ignores the time window, so it is left untouched.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toStatOptions(
   params: Record<string, unknown>,
@@ -96,11 +101,12 @@ function toStatOptions(
   if (filterValue !== undefined && filterValue !== null && filterValue !== '') {
     filters[filterKey] = String(filterValue);
   }
+  const thruTime = params.thruTime || (params.fromTime ? new Date().toISOString() : undefined);
   return {
     statId: params.statId,
     fromTime: params.fromTime,
     interval: params.interval,
-    ...(params.thruTime ? { thruTime: params.thruTime } : {}),
+    ...(thruTime ? { thruTime } : {}),
     ...(params.tenants ? { tenants: params.tenants } : {}),
     filters,
   };
