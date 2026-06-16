@@ -117,9 +117,14 @@ describe('createAuvikClient (real SDK adapter)', () => {
     expect(u).toContain('filter%5BthruTime%5D=');
   });
 
-  it('billing.clientUsage -> /billing/usage/client', async () => {
-    await client().billing.clientUsage({ fromDate: '2026-01-01', thruDate: '2026-01-31' });
-    expect(urlOf().startsWith(`${BASE}/billing/usage/client`)).toBe(true);
+  it('billing.clientUsage -> /billing/usage/client with filter[fromDate]/filter[thruDate]', async () => {
+    await client().billing.clientUsage({ fromDate: '2026-01-01', thruDate: '2026-01-31', tenants: 't1' });
+    const u = urlOf();
+    expect(u.startsWith(`${BASE}/billing/usage/client`)).toBe(true);
+    // Auvik billing dates are JSON:API filter[...] params, not plain keys.
+    expect(u).toContain('filter%5BfromDate%5D=2026-01-01');
+    expect(u).toContain('filter%5BthruDate%5D=2026-01-31');
+    expect(u).toContain('tenants=t1'); // tenants stays a plain scope param
   });
 
   it('tenants.list -> /tenants', async () => {
