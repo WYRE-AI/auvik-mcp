@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",
-    "@wyre-technology/node-auvik": "^1.2.2",
+    "@wyre-technology/node-auvik": "^1.2.3",
     "dotenv": "^16.4.0",
     "zod": "^3.22.0"
   },
