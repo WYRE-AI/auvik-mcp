@@ -220,4 +220,25 @@ describe('createAuvikClient (real SDK adapter)', () => {
     expect(detailUrl.startsWith(`${BASE}/tenants/detail`)).toBe(true);
     expect(detailUrl).toContain('tenantDomainPrefix=wyretechnologyhq');
   });
+
+  it('raw -> GET arbitrary path with bracketed query params', async () => {
+    await client().raw('GET', '/alert/history/info', {
+      'filter[detectedTimeAfter]': '2026-06-01',
+      'page[first]': 50,
+    });
+    const u = urlOf();
+    expect(u.startsWith(`${BASE}/alert/history/info`)).toBe(true);
+    expect(u).toContain('filter%5BdetectedTimeAfter%5D=2026-06-01');
+    expect(u).toContain('page%5Bfirst%5D=50');
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'GET' });
+  });
+
+  it('raw -> POST forwards method and JSON body', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, { status: 204, contentType: null }));
+    await client().raw('POST', '/alert/dismiss/a1', undefined, { reason: 'noise' });
+    expect(urlOf()).toBe(`${BASE}/alert/dismiss/a1`);
+    const init = fetchMock.mock.calls[0][1] as { method: string; body?: string };
+    expect(init.method).toBe('POST');
+    expect(String(init.body)).toContain('reason');
+  });
 });

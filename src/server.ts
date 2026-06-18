@@ -90,6 +90,9 @@ import {
   handleBillingDeviceUsage,
 } from './tools/billing.js';
 
+// Raw request tool
+import { rawRequestTool, handleRawRequest } from './tools/raw.js';
+
 const TOOLS = [
   // Status and navigation
   statusTool,
@@ -136,6 +139,9 @@ const TOOLS = [
   // Billing
   billingClientUsageTool,
   billingDeviceUsageTool,
+
+  // Raw request
+  rawRequestTool,
 ];
 
 export function createServer(): Server {
@@ -226,6 +232,10 @@ export function createServer(): Server {
           return await handleBillingClientUsage(args);
         case 'auvik_billing_device_usage':
           return await handleBillingDeviceUsage(args);
+
+        // Raw request
+        case 'auvik_raw_request':
+          return await handleRawRequest(args);
 
         default:
           throw new Error(`Unknown tool: ${name}`);

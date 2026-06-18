@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`auvik_raw_request` tool** — a generic escape hatch (parity with `autotask_raw_request`) for any Auvik endpoint or query param the typed tools don't expose. Takes `method` (GET/POST), `path`, optional `query` (exact Auvik param names, including brackets) and `body`, and returns the unmodified JSON:API response. Backed by the new `AuvikClient.request()` in `@wyre-technology/node-auvik` 1.3.0, so it reuses the SDK's auth, region resolution, retry/backoff and error mapping.
 - **`auvik_alerts_list` now scopes by detected time, sorts, and paginates by cursor.** New optional params: `filter_detectedTimeAfter` / `filter_detectedTimeBefore` (ISO 8601 → `filter[detectedTimeAfter]` / `filter[detectedTimeBefore]`) to reach recent alerts without walking the full history; `sort` (best-effort passthrough); and `pageAfter` plus a returned `nextPageAfter` cursor for forward pagination.
 
 ### Changed
+- **Bumped `@wyre-technology/node-auvik` to `^1.3.0`** for the public `AuvikClient.request()` passthrough that backs the new `auvik_raw_request` tool.
 - **Bumped `@wyre-technology/node-auvik` to `^1.2.4`** and moved the billing-date and statistics-`thruTime` wire-format knowledge into the SDK (where it belongs), so the adapter no longer hand-maps it. `auvik_billing_device_usage` now works: it takes a required `deviceId` and calls the SDK's `getUsageDevice` against Auvik's per-device route `/billing/usage/device/{id}` (the SDK previously hit the non-existent `/billing/usage/device`).
 
 ### Fixed
