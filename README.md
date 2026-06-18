@@ -58,6 +58,9 @@ MCP server for the Auvik network monitoring API. This server provides tools to i
 - `auvik_billing_client_usage` - Get client billing usage
 - `auvik_billing_device_usage` - Get device billing usage
 
+### Raw
+- `auvik_raw_request` - Make a raw request to any Auvik endpoint (`method` GET/POST, `path`, optional `query`/`body`). Returns the unmodified JSON:API response. For endpoints or params the typed tools don't expose.
+
 ## Installation
 
 ### Environment Variables
