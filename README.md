@@ -44,7 +44,7 @@ MCP server for the Auvik network monitoring API. This server provides tools to i
 - `auvik_entities_list_audits` - List entity audit logs
 
 ### Alerts
-- `auvik_alerts_list` - List monitoring alerts
+- `auvik_alerts_list` - List alert history. Scope to recent alerts with `filter_detectedTimeAfter`/`filter_detectedTimeBefore` (ISO 8601); filter by `filter_status`/`filter_severity`; paginate by cursor with `pageSize` + `pageAfter` (follow the returned `nextPageAfter`). `sort` is a best-effort passthrough.
 - `auvik_alerts_get` - Get specific alert
 - `auvik_alerts_dismiss` - Dismiss/acknowledge alert
 

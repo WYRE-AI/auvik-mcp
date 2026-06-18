@@ -5,15 +5,22 @@ import { toMcpError } from '../errors.js';
 
 export const alertsListTool: Tool = {
   name: 'auvik_alerts_list',
-  description: 'List alerts from Auvik monitoring',
+  description:
+    'List alert history from Auvik monitoring. Scope to a recent window with ' +
+    'filter_detectedTimeAfter/Before. Alert history is cursor-paginated: pass ' +
+    'pageSize for page size and follow nextPageAfter (returned when more pages ' +
+    'exist) via pageAfter. There is no page-number jumping.',
   inputSchema: {
     type: 'object',
     properties: {
-      page: { type: 'number', description: 'Page number (optional)' },
-      pageSize: { type: 'number', description: 'Number of items per page (1-1000, optional)' },
-      tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
+      filter_detectedTimeAfter: { type: 'string', description: 'Only alerts detected at/after this time (ISO 8601, optional). Best way to scope to recent alerts.' },
+      filter_detectedTimeBefore: { type: 'string', description: 'Only alerts detected at/before this time (ISO 8601, optional)' },
       filter_status: { type: 'string', enum: ['created', 'acknowledged', 'resolved'], description: 'Filter by alert status (optional)' },
       filter_severity: { type: 'string', enum: ['unknown', 'emergency', 'critical', 'warning', 'info'], description: 'Filter by severity (optional)' },
+      sort: { type: 'string', description: 'Best-effort sort passthrough, e.g. "-detectedTime". Honored only if Auvik supports it (optional)' },
+      pageSize: { type: 'number', description: 'Items per page; Auvik caps alert history at ~100. Follow nextPageAfter for full coverage (optional)' },
+      pageAfter: { type: 'string', description: 'Cursor for next page; pass the nextPageAfter value from a previous response (optional)' },
+      tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
     },
     additionalProperties: false,
   },
