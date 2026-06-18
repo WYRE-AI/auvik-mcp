@@ -13,13 +13,13 @@ export const alertsListTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
-      filter_detectedTimeAfter: { type: 'string', description: 'Only alerts detected at/after this time (ISO 8601). Best way to reach recent alerts. (optional)' },
-      filter_detectedTimeBefore: { type: 'string', description: 'Only alerts detected at/before this time (ISO 8601). (optional)' },
+      filter_detectedTimeAfter: { type: 'string', description: 'Only alerts detected at/after this time (ISO 8601, optional). Best way to scope to recent alerts.' },
+      filter_detectedTimeBefore: { type: 'string', description: 'Only alerts detected at/before this time (ISO 8601, optional)' },
       filter_status: { type: 'string', enum: ['created', 'acknowledged', 'resolved'], description: 'Filter by alert status (optional)' },
       filter_severity: { type: 'string', enum: ['unknown', 'emergency', 'critical', 'warning', 'info'], description: 'Filter by severity (optional)' },
-      sort: { type: 'string', description: 'Best-effort sort passthrough (e.g. "-detectedTime"). Honored only if the Auvik endpoint supports it. (optional)' },
-      pageSize: { type: 'number', description: 'Items per page. Auvik enforces its own maximum for alert history (~100); for full coverage, follow nextPageAfter. (optional)' },
-      pageAfter: { type: 'string', description: 'Opaque pagination cursor; pass the nextPageAfter value from a previous response to get the next page. (optional)' },
+      sort: { type: 'string', description: 'Best-effort sort passthrough, e.g. "-detectedTime". Honored only if Auvik supports it (optional)' },
+      pageSize: { type: 'number', description: 'Items per page; Auvik caps alert history at ~100. Follow nextPageAfter for full coverage (optional)' },
+      pageAfter: { type: 'string', description: 'Cursor for next page; pass the nextPageAfter value from a previous response (optional)' },
       tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
     },
     additionalProperties: false,
