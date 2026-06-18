@@ -68,6 +68,9 @@ export interface AuvikClient {
     clientUsage(params?: any): Promise<any>;
     deviceUsage(params?: any): Promise<any>;
   };
+
+  // Raw passthrough (generic escape hatch)
+  raw(method: string, path: string, query?: Record<string, unknown>, body?: unknown): Promise<any>;
 }
 
 // Tool args arrive as a loose object (e.g. { tenants: '123', filter_x: 'y' }).
@@ -254,5 +257,8 @@ export function createAuvikClient(credentials: AuvikCredentials): AuvikClient {
         fromDate: params.fromDate, thruDate: params.thruDate, tenants: params.tenants,
       })),
     },
+
+    raw: (method, path, query, body) =>
+      sdk.request(path, { method, params: query, body }),
   };
 }
