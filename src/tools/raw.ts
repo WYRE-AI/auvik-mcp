@@ -23,7 +23,7 @@ export const rawRequestTool: Tool = {
     type: 'object',
     properties: {
       method: { type: 'string', enum: ['GET', 'POST'], description: 'HTTP method (default GET)' },
-      path: { type: 'string', description: 'API path relative to the Auvik base URL, e.g. "/alert/history/info"' },
+      path: { type: 'string', minLength: 1, description: 'API path relative to the Auvik base URL, e.g. "/alert/history/info"' },
       query: { type: 'object', description: 'Query parameters as exact Auvik names, e.g. {"filter[detectedTimeAfter]":"2026-06-01"} (optional)', additionalProperties: true },
       body: { type: 'object', description: 'JSON request body (POST only, optional)', additionalProperties: true },
     },
@@ -36,10 +36,12 @@ export async function handleRawRequest(args: {
   method?: string;
   path: string;
   query?: Record<string, unknown>;
-  body?: unknown;
+  body?: Record<string, unknown>;
 }): Promise<any> {
   try {
+    // Default + normalize for direct callers; the schema enum already gates MCP callers.
     const method = (args.method ?? 'GET').toUpperCase();
+    // cast required: TS won't accept `string` for ReadonlyArray<'GET'|'POST'>.includes()
     if (!ALLOWED_METHODS.includes(method as (typeof ALLOWED_METHODS)[number])) {
       return {
         content: [{
@@ -49,9 +51,9 @@ export async function handleRawRequest(args: {
         isError: true,
       };
     }
-    if (!args.path) {
+    if (!args.path || !args.path.trim()) {
       return {
-        content: [{ type: 'text' as const, text: 'A "path" is required (e.g. "/alert/history/info")' }],
+        content: [{ type: 'text' as const, text: 'A non-empty "path" is required (e.g. "/alert/history/info")' }],
         isError: true,
       };
     }

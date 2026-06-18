@@ -70,7 +70,7 @@ export interface AuvikClient {
   };
 
   // Raw passthrough (generic escape hatch)
-  raw(method: string, path: string, query?: Record<string, unknown>, body?: unknown): Promise<any>;
+  raw(method: string, path: string, query?: Record<string, unknown>, body?: Record<string, unknown>): Promise<any>;
 }
 
 // Tool args arrive as a loose object (e.g. { tenants: '123', filter_x: 'y' }).
