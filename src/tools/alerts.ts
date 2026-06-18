@@ -5,15 +5,22 @@ import { toMcpError } from '../errors.js';
 
 export const alertsListTool: Tool = {
   name: 'auvik_alerts_list',
-  description: 'List alerts from Auvik monitoring',
+  description:
+    'List alert history from Auvik monitoring. Scope to a recent window with ' +
+    'filter_detectedTimeAfter/Before. Alert history is cursor-paginated: pass ' +
+    'pageSize for page size and follow nextPageAfter (returned when more pages ' +
+    'exist) via pageAfter. There is no page-number jumping.',
   inputSchema: {
     type: 'object',
     properties: {
-      page: { type: 'number', description: 'Page number (optional)' },
-      pageSize: { type: 'number', description: 'Number of items per page (1-1000, optional)' },
-      tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
+      filter_detectedTimeAfter: { type: 'string', description: 'Only alerts detected at/after this time (ISO 8601). Best way to reach recent alerts. (optional)' },
+      filter_detectedTimeBefore: { type: 'string', description: 'Only alerts detected at/before this time (ISO 8601). (optional)' },
       filter_status: { type: 'string', enum: ['created', 'acknowledged', 'resolved'], description: 'Filter by alert status (optional)' },
       filter_severity: { type: 'string', enum: ['unknown', 'emergency', 'critical', 'warning', 'info'], description: 'Filter by severity (optional)' },
+      sort: { type: 'string', description: 'Best-effort sort passthrough (e.g. "-detectedTime"). Honored only if the Auvik endpoint supports it. (optional)' },
+      pageSize: { type: 'number', description: 'Items per page. Auvik enforces its own maximum for alert history (~100); for full coverage, follow nextPageAfter. (optional)' },
+      pageAfter: { type: 'string', description: 'Opaque pagination cursor; pass the nextPageAfter value from a previous response to get the next page. (optional)' },
+      tenants: { type: 'string', description: 'Comma-separated tenant IDs (optional)' },
     },
     additionalProperties: false,
   },
