@@ -83,6 +83,46 @@ function toListOptions(params?: Record<string, unknown>): { filters: Record<stri
   return { filters };
 }
 
+// Map alert-list tool args into the SDK's listHistory options. Auvik's
+// /alert/history/info endpoint filters via JSON:API filter[...] params and
+// paginates by cursor (page[first] + page[after]); `tenants` and `sort` are
+// plain scope params. The previous generic toListOptions() dumped every arg in
+// verbatim, so filter_status/filter_severity were silently dropped and pageSize
+// never became page[first]. This keys each param the way Auvik expects.
+function toAlertListOptions(params: Record<string, unknown> = {}): {
+  pageSize?: number;
+  pageAfter?: string;
+  filters: Record<string, string>;
+} {
+  const filters: Record<string, string> = {};
+  const put = (key: string, value: unknown) => {
+    if (value !== undefined && value !== null && value !== '') filters[key] = String(value);
+  };
+  put('filter[detectedTimeAfter]', params.filter_detectedTimeAfter);
+  put('filter[detectedTimeBefore]', params.filter_detectedTimeBefore);
+  put('filter[status]', params.filter_status);
+  put('filter[severity]', params.filter_severity);
+  put('tenants', params.tenants); // plain scope param, not filter[...]
+  put('sort', params.sort);       // best-effort passthrough (Auvik-dependent)
+  return {
+    ...(params.pageSize ? { pageSize: Number(params.pageSize) } : {}),
+    ...(params.pageAfter ? { pageAfter: String(params.pageAfter) } : {}),
+    filters,
+  };
+}
+
+// Auvik returns links.next as a full URL carrying the opaque cursor in
+// page[after]. Extract it so callers can page forward by passing it back as
+// `pageAfter` (no URL parsing by the model). Returns undefined when absent.
+function extractPageAfter(nextUrl?: string): string | undefined {
+  if (!nextUrl) return undefined;
+  try {
+    return new URL(nextUrl).searchParams.get('page[after]') ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // Map statistics tool args into the SDK's StatisticsOptions. statId + interval
 // are required by Auvik; fromTime/thruTime/tenants pass through; the
 // type-specific id filter is keyed as the API expects (e.g. filter[deviceId]).
@@ -175,7 +215,11 @@ export function createAuvikClient(credentials: AuvikCredentials): AuvikClient {
     },
 
     alerts: {
-      list: (params) => sdk.alerts.listHistory(toListOptions(params)),
+      list: async (params) => {
+        const page = await sdk.alerts.listHistory(toAlertListOptions(params));
+        const nextPageAfter = extractPageAfter(page.links?.next);
+        return nextPageAfter ? { ...page, nextPageAfter } : page;
+      },
       get: (alertId) => wrap(sdk.alerts.getHistory(alertId)),
       dismiss: async (alertId) => {
         await sdk.alerts.dismiss(alertId);

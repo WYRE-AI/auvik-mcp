@@ -83,6 +83,52 @@ describe('createAuvikClient (real SDK adapter)', () => {
     expect(urlOf()).toBe(`${BASE}/alert/history/info`);
   });
 
+  it('alerts.list maps detected-time/status/severity/sort to Auvik params and lifts pagination', async () => {
+    await client().alerts.list({
+      filter_detectedTimeAfter: '2026-06-01T00:00:00Z',
+      filter_detectedTimeBefore: '2026-06-17T00:00:00Z',
+      filter_status: 'created',
+      filter_severity: 'critical',
+      sort: '-detectedTime',
+      tenants: 't1',
+      pageSize: 100,
+      pageAfter: 'CURSOR123',
+    });
+    const u = urlOf();
+    expect(u.startsWith(`${BASE}/alert/history/info`)).toBe(true);
+    expect(u).toContain('filter%5BdetectedTimeAfter%5D=2026-06-01T00%3A00%3A00Z');
+    expect(u).toContain('filter%5BdetectedTimeBefore%5D=2026-06-17T00%3A00%3A00Z');
+    expect(u).toContain('filter%5Bstatus%5D=created');
+    expect(u).toContain('filter%5Bseverity%5D=critical');
+    expect(u).toContain('sort=-detectedTime');
+    expect(u).toContain('tenants=t1');
+    expect(u).toContain('page%5Bfirst%5D=100');
+    expect(u).toContain('page%5Bafter%5D=CURSOR123');
+  });
+
+  it('alerts.list never sends a raw "page" number param', async () => {
+    await client().alerts.list({ pageSize: 50 });
+    const u = urlOf();
+    expect(u).not.toMatch(/[?&]page=/);
+  });
+
+  it('alerts.list surfaces nextPageAfter extracted from links.next', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: [{ id: 'a1', type: 'alertHistory', attributes: { status: 'created' } }],
+        links: { next: 'https://auvikapi.us1.my.auvik.com/v1/alert/history/info?page%5Bafter%5D=NEXTCUR' },
+        meta: {},
+      }),
+    );
+    const res = await client().alerts.list();
+    expect(res.nextPageAfter).toBe('NEXTCUR');
+  });
+
+  it('alerts.list omits nextPageAfter when there is no next link', async () => {
+    const res = await client().alerts.list();
+    expect(res.nextPageAfter).toBeUndefined();
+  });
+
   it('alerts.dismiss -> POST /alert/dismiss/{id}', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({}, { status: 204, contentType: null }));
     const res = await client().alerts.dismiss('a1');
