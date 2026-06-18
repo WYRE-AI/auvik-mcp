@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`auvik_alerts_list` now scopes by detected time, sorts, and paginates by cursor.** New optional params: `filter_detectedTimeAfter` / `filter_detectedTimeBefore` (ISO 8601 → `filter[detectedTimeAfter]` / `filter[detectedTimeBefore]`) to reach recent alerts without walking the full history; `sort` (best-effort passthrough); and `pageAfter` plus a returned `nextPageAfter` cursor for forward pagination.
+
 ### Changed
 - **Bumped `@wyre-technology/node-auvik` to `^1.2.4`** and moved the billing-date and statistics-`thruTime` wire-format knowledge into the SDK (where it belongs), so the adapter no longer hand-maps it. `auvik_billing_device_usage` now works: it takes a required `deviceId` and calls the SDK's `getUsageDevice` against Auvik's per-device route `/billing/usage/device/{id}` (the SDK previously hit the non-existent `/billing/usage/device`).
 
 ### Fixed
+- **`auvik_alerts_list` silently ignored `filter_status`, `filter_severity`, and `pageSize`, and exposed a non-functional `page` param.** The adapter dumped args in verbatim, so Auvik never saw `filter[status]`/`filter[severity]`/`page[first]`. The tool now maps each arg to the JSON:API param Auvik expects (`filter[...]`, `page[first]`/`page[after]`), and removes `page` — Auvik alert history is cursor-paginated, so page-number jumping was never possible.
 - **`auvik_billing_client_usage` returned `400 Field "fromDate" of required type "String!" was not provided`.** The tool exposed `fromTime`/`thruTime`, but Auvik's billing usage endpoint filters by date via the JSON:API params `filter[fromDate]`/`filter[thruDate]` (`YYYY-MM-DD`). The tools now take `fromDate`/`thruDate`; node-auvik `^1.2.4` builds the bracketed `filter[...]` params (`tenants` stays a plain scope param).
 - **`auvik_billing_device_usage` never returned data** (it hit `/billing/usage/device` with no device id). It now requires a `deviceId` and queries the correct per-device route via node-auvik `^1.2.4`.
 
