@@ -104,8 +104,9 @@ function toAlertListOptions(params: Record<string, unknown> = {}): {
   put('filter[severity]', params.filter_severity);
   put('tenants', params.tenants); // plain scope param, not filter[...]
   put('sort', params.sort);       // best-effort passthrough (Auvik-dependent)
+  const pageSize = params.pageSize != null ? Number(params.pageSize) : undefined;
   return {
-    ...(params.pageSize ? { pageSize: Number(params.pageSize) } : {}),
+    ...(pageSize !== undefined && Number.isFinite(pageSize) && pageSize > 0 ? { pageSize } : {}),
     ...(params.pageAfter ? { pageAfter: String(params.pageAfter) } : {}),
     filters,
   };

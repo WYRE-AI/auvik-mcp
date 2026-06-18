@@ -112,6 +112,14 @@ describe('createAuvikClient (real SDK adapter)', () => {
     expect(u).not.toMatch(/[?&]page=/);
   });
 
+  it('alerts.list drops a non-numeric pageSize instead of sending NaN', async () => {
+    await client().alerts.list({ pageSize: 'abc' as unknown as number, filter_status: 'created' });
+    const u = urlOf();
+    expect(u).not.toContain('page%5Bfirst%5D');
+    expect(u).not.toContain('NaN');
+    expect(u).toContain('filter%5Bstatus%5D=created'); // other params still flow
+  });
+
   it('alerts.list surfaces nextPageAfter extracted from links.next', async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
