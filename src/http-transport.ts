@@ -2,9 +2,11 @@ import { createServer as createHttpServer } from 'node:http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server.js';
 import { credentialsStorage, type AuvikCredentials } from './credentials.js';
+import { verifyS2sHeader, S2S_HEADER } from './s2s-verify.js';
 
 const port = parseInt(process.env.MCP_HTTP_PORT || '8080', 10);
 const host = process.env.MCP_HTTP_HOST || '0.0.0.0';
+const S2S_SECRET = process.env.CONDUIT_S2S_SECRET || '';
 
 // Uses the raw node:http server (not Fastify) to match the WYRE MCP fleet
 // convention. The StreamableHTTPServerTransport reads the request body off the
@@ -31,6 +33,12 @@ export async function startHttpTransport(): Promise<void> {
     if (url.pathname !== '/mcp') {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Not found', endpoints: ['/mcp', '/health'] }));
+      return;
+    }
+
+    if (S2S_SECRET && !verifyS2sHeader(req.headers[S2S_HEADER] as string | undefined, S2S_SECRET)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing or invalid X-Gateway-S2S header: this endpoint only accepts requests signed by the gateway.' }));
       return;
     }
 
