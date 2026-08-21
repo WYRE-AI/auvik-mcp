@@ -40,11 +40,11 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/changelog": "^7.0.0",
+    "@semantic-release/git": "^11.0.1",
     "@semantic-release/github": "^12.0.9",
-    "@types/node": "^26.1.0",
-    "semantic-release": "^25.0.0",
+    "@types/node": "^26.2.0",
+    "semantic-release": "^25.0.9",
     "tsup": "^8.0.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10"
