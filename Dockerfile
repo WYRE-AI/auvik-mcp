@@ -14,8 +14,8 @@ RUN npm run build
 FROM node:20-alpine AS production
 # OCI label links the GHCR package to this repository,
 # enabling GITHUB_TOKEN write access from Actions workflows.
-LABEL org.opencontainers.image.source="https://github.com/wyre-technology/auvik-mcp"
-LABEL io.modelcontextprotocol.server.name="io.github.wyre-technology/auvik-mcp"
+LABEL org.opencontainers.image.source="https://github.com/WYRE-AI/auvik-mcp"
+LABEL io.modelcontextprotocol.server.name="io.github.WYRE-AI/auvik-mcp"
 RUN addgroup -g 1001 -S appuser && adduser -S appuser -u 1001 -G appuser
 WORKDIR /app
 COPY --from=builder /app/dist ./dist
