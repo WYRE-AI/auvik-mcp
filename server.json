@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.wyre-technology/auvik-mcp",
+  "name": "io.github.WYRE-AI/auvik-mcp",
   "title": "Auvik",
   "description": "MCP server for the Auvik network monitoring API — devices, alerts, statistics, billing.",
   "repository": {
-    "url": "https://github.com/wyre-technology/auvik-mcp",
+    "url": "https://github.com/WYRE-AI/auvik-mcp",
     "source": "github"
   },
   "version": "0.0.0",
-  "websiteUrl": "https://github.com/wyre-technology/auvik-mcp",
+  "websiteUrl": "https://github.com/WYRE-AI/auvik-mcp",
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/wyre-technology/auvik-mcp:0.0.0",
+      "identifier": "ghcr.io/wyre-ai/auvik-mcp:0.0.0",
       "transport": {
         "type": "stdio"
       },

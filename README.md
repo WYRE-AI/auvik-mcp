@@ -82,7 +82,7 @@ Credentials are provided via request headers:
 
 ```bash
 # Pull from GitHub Container Registry
-docker pull ghcr.io/wyre-technology/auvik-mcp:latest
+docker pull ghcr.io/wyre-ai/auvik-mcp:latest
 
 # Run with environment variables
 docker run -d \
@@ -90,7 +90,7 @@ docker run -d \
   -e AUVIK_USERNAME=your_username \
   -e AUVIK_API_KEY=your_api_key \
   -e AUVIK_REGION=us1 \
-  ghcr.io/wyre-technology/auvik-mcp:latest
+  ghcr.io/wyre-ai/auvik-mcp:latest
 ```
 
 ### Docker Compose
@@ -99,7 +99,7 @@ docker run -d \
 version: '3.8'
 services:
   auvik-mcp:
-    image: ghcr.io/wyre-technology/auvik-mcp:latest
+    image: ghcr.io/wyre-ai/auvik-mcp:latest
     ports:
       - "8080:8080"
     environment:
@@ -111,7 +111,7 @@ services:
 ### Local Development
 
 ```bash
-git clone https://github.com/wyre-technology/auvik-mcp.git
+git clone https://github.com/WYRE-AI/auvik-mcp.git
 cd auvik-mcp
 npm install
 npm run build
@@ -218,6 +218,6 @@ Licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
 
 ## Support
 
-- [GitHub Issues](https://github.com/wyre-technology/auvik-mcp/issues)
+- [GitHub Issues](https://github.com/WYRE-AI/auvik-mcp/issues)
 - [Auvik API Documentation](https://api.auvik.com/documentation)
 - [MCP Protocol Documentation](https://modelcontextprotocol.io/)

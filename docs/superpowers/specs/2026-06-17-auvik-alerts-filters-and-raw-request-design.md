@@ -2,7 +2,7 @@
 
 - **Date:** 2026-06-17
 - **Status:** Approved (design); pending written-spec review
-- **Repos touched:** `wyre-technology/auvik-mcp` (primary), `wyre-technology/node-auvik` (small additive change)
+- **Repos touched:** `WYRE-AI/auvik-mcp` (primary), `WYRE-AI/node-auvik` (small additive change)
 - **Origin:** Customer feedback on the Auvik toolset reporting outdated/irrelevant alert data (3 issues + a suggested alternative).
 
 ## 1. Background & problem

@@ -315,7 +315,7 @@ gh pr create --fill --title "fix: auvik_alerts_list detected-time filters, curso
 
 ## Phase 2 — node-auvik: add a public `request()` passthrough
 
-> Separate repo: `wyre-technology/node-auvik` (not checked out here). Do this in its own clone/branch/PR. Release a **minor** version (e.g. `1.3.0`) before Phase 3.
+> Separate repo: `WYRE-AI/node-auvik` (not checked out here). Do this in its own clone/branch/PR. Release a **minor** version (e.g. `1.3.0`) before Phase 3.
 
 ### Task 4: Set up the node-auvik branch
 
@@ -323,7 +323,7 @@ gh pr create --fill --title "fix: auvik_alerts_list detected-time filters, curso
 
 ```bash
 cd ~/work/wyre/engineering/projects/sdk 2>/dev/null || cd ~/work
-gh repo clone wyre-technology/node-auvik 2>/dev/null || true
+gh repo clone WYRE-AI/node-auvik 2>/dev/null || true
 cd node-auvik
 git checkout main && git pull
 git checkout -b feat/public-raw-request
@@ -477,7 +477,7 @@ gh pr create --fill --title "feat: public AuvikClient.request() raw passthrough"
 After review/merge, the `feat:` commit drives semantic-release to publish the new minor (e.g. `1.3.0`). Confirm:
 
 ```bash
-gh release list --repo wyre-technology/node-auvik --limit 3
+gh release list --repo WYRE-AI/node-auvik --limit 3
 npm view @wyre-technology/node-auvik version
 ```
 Expected: new minor version published. **Do not start Phase 3 until this version is live on the registry.**
@@ -788,7 +788,7 @@ gh pr create --fill --title "feat: alert detected-time filters + cursor paging +
 - [ ] **Step 2: After merge, confirm the auvik-mcp release**
 
 ```bash
-gh release list --repo wyre-technology/auvik-mcp --limit 3
+gh release list --repo WYRE-AI/auvik-mcp --limit 3
 ```
 Expected: semantic-release cut a new version from the `feat:`/`fix:` commits.
 
