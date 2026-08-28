@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:26-alpine AS builder
 ARG GITHUB_TOKEN
 WORKDIR /app
 COPY package*.json ./
@@ -11,7 +11,7 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine AS production
+FROM node:26-alpine AS production
 # OCI label links the GHCR package to this repository,
 # enabling GITHUB_TOKEN write access from Actions workflows.
 LABEL org.opencontainers.image.source="https://github.com/WYRE-AI/auvik-mcp"
