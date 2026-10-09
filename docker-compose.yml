@@ -4,13 +4,18 @@ services:
   auvik-mcp:
     build: .
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       - AUVIK_USERNAME=${AUVIK_USERNAME}
       - AUVIK_API_KEY=${AUVIK_API_KEY}
       - AUVIK_REGION=${AUVIK_REGION:-us1}
       - MCP_TRANSPORT=http
+      # Override env_file so a copied .env cannot rebind the container to
+      # loopback-only or flip gateway mode back to env credentials.
+      - MCP_HTTP_HOST=0.0.0.0
+      - AUTH_MODE=gateway
       - NODE_ENV=development
+      - CONDUIT_S2S_SECRET=${CONDUIT_S2S_SECRET:?set CONDUIT_S2S_SECRET}
     env_file:
       - .env
     healthcheck:

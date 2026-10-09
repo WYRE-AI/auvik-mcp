@@ -72,11 +72,23 @@ AUVIK_API_KEY=your_auvik_api_key
 AUVIK_REGION=us1  # Optional: us1, us2, us3, us4, us5, us6, lnx, eu1, eu2, au1, ca1
 ```
 
-#### Gateway mode (HTTP):
-Credentials are provided via request headers:
+The stdio transport reads those variables and is not affected by HTTP service-to-service auth.
+
+#### HTTP transport:
+`CONDUIT_S2S_SECRET` is required. If it is empty, the HTTP server logs an error and exits non-zero. It never prints the secret. Set `MCP_ALLOW_INSECURE_DEV=1` only for local development to start without the secret; the process logs a loud warning and does not check `X-Gateway-S2S`.
+
+`MCP_HTTP_HOST` defaults to `127.0.0.1` when unset. Set `0.0.0.0` only where the port is otherwise protected. The container image does that and sets `AUTH_MODE=gateway`.
+
+#### Gateway mode (`AUTH_MODE=gateway`):
+Every `/mcp` request must include:
 - `x-auvik-username`
 - `x-auvik-api-key`
 - `x-auvik-region` (optional)
+
+A request missing the username or API key gets `401` and does not fall back to `AUVIK_USERNAME` / `AUVIK_API_KEY` in the process environment. When `CONDUIT_S2S_SECRET` is set, the request must also include a valid `X-Gateway-S2S` header.
+
+#### Single-tenant HTTP (`AUTH_MODE=env`):
+`/mcp` still requires a valid `X-Gateway-S2S` header. Vendor credentials come from the `AUVIK_*` environment variables when the request does not carry `x-auvik-username` and `x-auvik-api-key`.
 
 ### Docker
 
@@ -84,12 +96,11 @@ Credentials are provided via request headers:
 # Pull from GitHub Container Registry
 docker pull ghcr.io/wyre-ai/auvik-mcp:latest
 
-# Run with environment variables
+# Run with the gateway S2S secret. The image sets AUTH_MODE=gateway and
+# MCP_HTTP_HOST=0.0.0.0; publish the port on loopback unless a proxy sits in front.
 docker run -d \
-  -p 8080:8080 \
-  -e AUVIK_USERNAME=your_username \
-  -e AUVIK_API_KEY=your_api_key \
-  -e AUVIK_REGION=us1 \
+  -p 127.0.0.1:8080:8080 \
+  -e CONDUIT_S2S_SECRET="$CONDUIT_S2S_SECRET" \
   ghcr.io/wyre-ai/auvik-mcp:latest
 ```
 
@@ -101,11 +112,10 @@ services:
   auvik-mcp:
     image: ghcr.io/wyre-ai/auvik-mcp:latest
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
-      - AUVIK_USERNAME=your_username
-      - AUVIK_API_KEY=your_api_key
-      - AUVIK_REGION=us1
+      - CONDUIT_S2S_SECRET=${CONDUIT_S2S_SECRET:?set CONDUIT_S2S_SECRET}
+      - AUTH_MODE=gateway
 ```
 
 ### Local Development
@@ -119,8 +129,11 @@ npm run build
 # Run with stdio transport
 npm start
 
-# Run with HTTP transport
-npm run start:http
+# Run with HTTP transport (refuses to start until CONDUIT_S2S_SECRET is set)
+CONDUIT_S2S_SECRET="$CONDUIT_S2S_SECRET" npm run start:http
+
+# Local HTTP only, without a service-to-service secret (binds 127.0.0.1 by default)
+MCP_ALLOW_INSECURE_DEV=1 npm run start:http
 ```
 
 ## Usage
@@ -130,10 +143,11 @@ npm run start:http
 The server is designed to work with WYRE's MCP Gateway. The gateway handles authentication and routing:
 
 ```typescript
-// Gateway automatically injects credentials via headers
+// Gateway automatically injects credentials and the X-Gateway-S2S proof
 const response = await fetch('http://gateway:8080/mcp', {
   method: 'POST',
   headers: {
+    'x-gateway-s2s': '<proof signed with CONDUIT_S2S_SECRET>',
     'x-auvik-username': 'your_username',
     'x-auvik-api-key': 'your_api_key',
     'x-auvik-region': 'us1',
@@ -184,7 +198,7 @@ The server implements comprehensive error handling:
 
 ## Health Check
 
-The server exposes a health endpoint at `/health` that always returns 200 OK. This endpoint does not require authentication and is suitable for container health checks.
+The server exposes a health endpoint at `/health` that always returns 200 OK. This endpoint does not require authentication, does not read vendor credentials, and is suitable for container health checks.
 
 ## Development
 
