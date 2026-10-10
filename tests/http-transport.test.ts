@@ -129,6 +129,43 @@ describe('HTTP transport fail-closed auth', () => {
 
     const address = server.address();
     expect(address).toMatchObject({ address: '127.0.0.1' });
+    expect(logged).not.toContain('not a loopback address');
+  });
+
+  it('binds 127.0.0.1 when the dev bypass is set and MCP_HTTP_HOST is non-loopback', async () => {
+    delete process.env.CONDUIT_S2S_SECRET;
+    process.env.MCP_ALLOW_INSECURE_DEV = '1';
+    process.env.MCP_HTTP_HOST = '0.0.0.0';
+    process.env.MCP_HTTP_PORT = '0';
+    process.env.AUVIK_API_KEY = CANARY_API_KEY;
+    const { errors } = silenceLogs();
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null) => {
+      throw new Error(`process.exit:${code}`);
+    });
+
+    const server = await startHttpTransport();
+    servers.push(server);
+
+    expect(exitSpy).not.toHaveBeenCalled();
+    const logged = errors.join('\n');
+    expect(logged).toContain('MCP_HTTP_HOST=0.0.0.0 is not a loopback address');
+    expect(logged).toContain('Binding 127.0.0.1 only');
+    assertNoSecrets(logged);
+    expect(server.address()).toMatchObject({ address: '127.0.0.1' });
+  });
+
+  it('honors a non-loopback MCP_HTTP_HOST when CONDUIT_S2S_SECRET is set', async () => {
+    process.env.CONDUIT_S2S_SECRET = S2S_SECRET;
+    delete process.env.MCP_ALLOW_INSECURE_DEV;
+    process.env.MCP_HTTP_HOST = '0.0.0.0';
+    process.env.MCP_HTTP_PORT = '0';
+    const { errors } = silenceLogs();
+
+    const server = await startHttpTransport();
+    servers.push(server);
+
+    expect(errors.join('\n')).not.toContain('not a loopback address');
+    expect(server.address()).toMatchObject({ address: '0.0.0.0' });
   });
 
   it('returns 401 when the S2S header is missing or invalid', async () => {

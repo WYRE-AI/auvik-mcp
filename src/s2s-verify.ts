@@ -16,7 +16,8 @@
  *
  * Empty secret => always returns false. That is not a production bypass:
  * the HTTP transport refuses to start when CONDUIT_S2S_SECRET is empty,
- * unless MCP_ALLOW_INSECURE_DEV=1 (local development only).
+ * unless MCP_ALLOW_INSECURE_DEV=1, which is local development only and
+ * listens on 127.0.0.1.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 

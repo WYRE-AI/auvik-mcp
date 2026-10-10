@@ -12,9 +12,10 @@ const MISSING_S2S_SECRET_ERROR =
 
 const INSECURE_DEV_WARNING =
   'WARNING: MCP_ALLOW_INSECURE_DEV=1 is set and CONDUIT_S2S_SECRET is empty. ' +
-  'The HTTP server is starting WITHOUT service-to-service authentication. ' +
-  'Anyone who can reach this port can call /mcp. ' +
+  'The HTTP server is starting WITHOUT service-to-service authentication and listens on 127.0.0.1 only. ' +
   'Do not use MCP_ALLOW_INSECURE_DEV outside local development.';
+
+const LOOPBACK_HOST = '127.0.0.1';
 
 const S2S_UNAUTHORIZED = {
   error: 'Missing or invalid X-Gateway-S2S header: this endpoint only accepts requests signed by the gateway.',
@@ -31,6 +32,28 @@ const GATEWAY_CREDENTIALS_UNAUTHORIZED = {
 
 function headerValue(value: string | string[] | undefined): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function isLoopbackHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase().replace(/^\[|\]$/g, '');
+  return normalized === '127.0.0.1' || normalized === 'localhost' || normalized === '::1';
+}
+
+/**
+ * The insecure-dev bypass skips S2S, so it must not honor a public bind such
+ * as the image default 0.0.0.0. Non-loopback MCP_HTTP_HOST is overridden.
+ */
+function resolveListenHost(s2sSecret: string): string {
+  const configured = (process.env.MCP_HTTP_HOST || '').trim() || LOOPBACK_HOST;
+  if (s2sSecret) return configured;
+  if (!isLoopbackHost(configured)) {
+    console.error(
+      `WARNING: MCP_HTTP_HOST=${configured} is not a loopback address. ` +
+      'MCP_ALLOW_INSECURE_DEV=1 without CONDUIT_S2S_SECRET cannot listen there. ' +
+      `Binding ${LOOPBACK_HOST} only.`,
+    );
+  }
+  return LOOPBACK_HOST;
 }
 
 /**
@@ -58,9 +81,10 @@ function resolveS2sSecret(): string {
 export async function startHttpTransport(): Promise<Server> {
   const s2sSecret = resolveS2sSecret();
   const port = parseInt(process.env.MCP_HTTP_PORT || '8080', 10);
-  // Loopback unless the operator opts into a wider bind. The container image
-  // sets MCP_HTTP_HOST=0.0.0.0 and is protected by the S2S secret check above.
-  const host = process.env.MCP_HTTP_HOST || '127.0.0.1';
+  // Loopback unless the operator opts into a wider bind. A wider bind is
+  // honored only when CONDUIT_S2S_SECRET is set. The insecure-dev bypass
+  // always listens on 127.0.0.1, including when the image sets 0.0.0.0.
+  const host = resolveListenHost(s2sSecret);
 
   const httpServer = createHttpServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);

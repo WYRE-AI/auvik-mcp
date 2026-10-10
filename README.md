@@ -75,9 +75,9 @@ AUVIK_REGION=us1  # Optional: us1, us2, us3, us4, us5, us6, lnx, eu1, eu2, au1, 
 The stdio transport reads those variables and is not affected by HTTP service-to-service auth.
 
 #### HTTP transport:
-`CONDUIT_S2S_SECRET` is required. If it is empty, the HTTP server logs an error and exits non-zero. It never prints the secret. Set `MCP_ALLOW_INSECURE_DEV=1` only for local development to start without the secret; the process logs a loud warning and does not check `X-Gateway-S2S`.
+`CONDUIT_S2S_SECRET` is required. If it is empty, the HTTP server logs an error and exits non-zero. It never prints the secret. Set `MCP_ALLOW_INSECURE_DEV=1` only for local development to start without the secret; the process logs a loud warning, does not check `X-Gateway-S2S`, and binds `127.0.0.1` only. A non-loopback `MCP_HTTP_HOST` (including `0.0.0.0`) is ignored in that mode and the override is logged.
 
-`MCP_HTTP_HOST` defaults to `127.0.0.1` when unset. Set `0.0.0.0` only where the port is otherwise protected. The container image does that and sets `AUTH_MODE=gateway`.
+`MCP_HTTP_HOST` defaults to `127.0.0.1` when unset. Set `0.0.0.0` only when `CONDUIT_S2S_SECRET` is set. The container image does that and sets `AUTH_MODE=gateway`.
 
 #### Gateway mode (`AUTH_MODE=gateway`):
 Every `/mcp` request must include:
@@ -106,6 +106,8 @@ docker run -d \
 
 ### Docker Compose
 
+The checked-in Compose service is gateway mode. It does not set `AUVIK_USERNAME` or `AUVIK_API_KEY` and does not use `env_file`, so a project `.env` cannot inject static vendor credentials into the container. Compose still interpolates `CONDUIT_S2S_SECRET` and `AUVIK_REGION` from that file.
+
 ```yaml
 version: '3.8'
 services:
@@ -114,8 +116,29 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     environment:
-      - CONDUIT_S2S_SECRET=${CONDUIT_S2S_SECRET:?set CONDUIT_S2S_SECRET}
       - AUTH_MODE=gateway
+      - AUVIK_REGION=${AUVIK_REGION:-us1}
+      - CONDUIT_S2S_SECRET=${CONDUIT_S2S_SECRET:?set CONDUIT_S2S_SECRET}
+      - MCP_HTTP_HOST=0.0.0.0
+```
+
+#### Single-tenant HTTP (`AUTH_MODE=env`) in Docker
+
+Use this only for one tenant whose credentials live in the process environment. It is separate from the gateway Compose service above.
+
+```yaml
+services:
+  auvik-mcp:
+    image: ghcr.io/wyre-ai/auvik-mcp:latest
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - AUTH_MODE=env
+      - AUVIK_USERNAME=${AUVIK_USERNAME:?set AUVIK_USERNAME}
+      - AUVIK_API_KEY=${AUVIK_API_KEY:?set AUVIK_API_KEY}
+      - AUVIK_REGION=${AUVIK_REGION:-us1}
+      - CONDUIT_S2S_SECRET=${CONDUIT_S2S_SECRET:?set CONDUIT_S2S_SECRET}
+      - MCP_HTTP_HOST=0.0.0.0
 ```
 
 ### Local Development
@@ -132,7 +155,7 @@ npm start
 # Run with HTTP transport (refuses to start until CONDUIT_S2S_SECRET is set)
 CONDUIT_S2S_SECRET="$CONDUIT_S2S_SECRET" npm run start:http
 
-# Local HTTP only, without a service-to-service secret (binds 127.0.0.1 by default)
+# Local HTTP only, without a service-to-service secret (always binds 127.0.0.1)
 MCP_ALLOW_INSECURE_DEV=1 npm run start:http
 ```
 
