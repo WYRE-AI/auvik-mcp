@@ -5,7 +5,7 @@ MCP server for the Auvik network monitoring API. This server provides tools to i
 ## Features
 
 - **Multi-tenant support** - Works in both single-tenant and gateway modes
-- **Comprehensive API coverage** - 25+ tools covering all major Auvik API endpoints
+- **Comprehensive API coverage** - 27 tools covering all major Auvik API endpoints
 - **Transport flexibility** - Supports both HTTP and stdio transports
 - **Type-safe** - Built with TypeScript and Zod validation
 - **Docker ready** - Available as a containerized solution
